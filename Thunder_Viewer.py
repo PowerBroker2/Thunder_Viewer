@@ -8,6 +8,7 @@ from socket import gethostbyname, gethostname
 from socketserver import TCPServer, BaseRequestHandler
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from pySerialTransfer import pySerialTransfer
 from WarThunder import general, telemetry, acmi
 from WarThunder.telemetry import combine_dicts
 from getpass import getuser
