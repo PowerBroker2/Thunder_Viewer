@@ -176,6 +176,7 @@ class AppWindow(QMainWindow):
         self.update_port_list()
         
         self.ui.acmi_path.setText(LOGS_DIR)
+        self.ui.usb_baud.setCurrentIndex(8) # default baud of 115200
     
     def connect_signals(self):
         self.ui.tacview_select.clicked.connect(self.get_tacview_install)
@@ -270,8 +271,11 @@ class RecordThread(QThread):
         
         if self.usb_enable:
             self.usb_port = parent.ui.live_usb.text()
+            self.usb_baud = parent.ui.usb_baud.text()
             if not self.usb_port:
                 self.usb_enable = False
+            else:
+                self.transfer = transfer.SerialTransfer(self.usb_port, self.usb_baud)
     
     def process_player(self):
         if self.telem.get_telemetry():
@@ -298,8 +302,33 @@ class RecordThread(QThread):
                     log.write(log_line)
             
             if self.usb_enable:
-                #pyserialtrasnfer
-                pass
+                # mulitply float values by a constant so as to preserve as much
+                # of the value's precision as possible
+                pitch = int(self.telem.basic_telemetry['pitch'] * 350)
+                roll  = int(self.telem.basic_telemetry['roll']  * 350)
+                hdg   = int(self.telem.basic_telemetry['heading'])
+                alt   = int(self.telem.basic_telemetry['altitude'])
+                lat   = int(self.telem.basic_telemetry['lat'] * 5000)
+                lon   = int(self.telem.basic_telemetry['lon'] * 5000)
+                
+                self.transfer.txBuff[0]  = transfer.msb(pitch)
+                self.transfer.txBuff[1]  = transfer.lsb(pitch)
+                self.transfer.txBuff[2]  = transfer.msb(roll)
+                self.transfer.txBuff[3]  = transfer.lsb(roll)
+                self.transfer.txBuff[4]  = transfer.msb(hdg)
+                self.transfer.txBuff[5]  = transfer.lsb(hdg)
+                self.transfer.txBuff[6]  = transfer.msb(alt)
+                self.transfer.txBuff[7]  = transfer.lsb(alt)
+                self.transfer.txBuff[8]  = transfer.msb(lat)
+                self.transfer.txBuff[9]  = transfer.byte_val(lat, 2)
+                self.transfer.txBuff[10] = transfer.byte_val(lat, 1)
+                self.transfer.txBuff[11] = transfer.lsb(lat)
+                self.transfer.txBuff[12] = transfer.msb(lon)
+                self.transfer.txBuff[13] = transfer.byte_val(lon, 2)
+                self.transfer.txBuff[14] = transfer.byte_val(lon, 1)
+                self.transfer.txBuff[15] = transfer.lsb(lon)
+                
+                self.transfer.send(16)
         
     def run(self):
         self.loc_time = dt.datetime.now()

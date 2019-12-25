@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>430</height>
+    <height>517</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>500</width>
-    <height>430</height>
+    <height>517</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>500</width>
-    <height>430</height>
+    <height>517</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -30,7 +30,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>120</y>
+      <y>140</y>
       <width>201</width>
       <height>20</height>
      </rect>
@@ -43,7 +43,7 @@
     <property name="geometry">
      <rect>
       <x>210</x>
-      <y>350</y>
+      <y>440</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -56,7 +56,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>320</y>
+      <y>410</y>
       <width>201</width>
       <height>23</height>
      </rect>
@@ -69,7 +69,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>320</y>
+      <y>410</y>
       <width>201</width>
       <height>23</height>
      </rect>
@@ -82,7 +82,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>100</y>
+      <y>120</y>
       <width>201</width>
       <height>16</height>
      </rect>
@@ -95,7 +95,7 @@
     <property name="geometry">
      <rect>
       <x>50</x>
-      <y>150</y>
+      <y>170</y>
       <width>191</width>
       <height>17</height>
      </rect>
@@ -121,7 +121,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>100</y>
+      <y>120</y>
       <width>201</width>
       <height>20</height>
      </rect>
@@ -134,7 +134,7 @@
     <property name="geometry">
      <rect>
       <x>270</x>
-      <y>150</y>
+      <y>170</y>
       <width>191</width>
       <height>20</height>
      </rect>
@@ -147,7 +147,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>270</y>
+      <y>360</y>
       <width>421</width>
       <height>31</height>
      </rect>
@@ -173,7 +173,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>120</y>
+      <y>140</y>
       <width>201</width>
       <height>22</height>
      </rect>
@@ -217,9 +217,9 @@
    <widget class="QCheckBox" name="live_usb">
     <property name="geometry">
      <rect>
-      <x>50</x>
-      <y>230</y>
-      <width>191</width>
+      <x>270</x>
+      <y>290</y>
+      <width>181</width>
       <height>20</height>
      </rect>
     </property>
@@ -231,7 +231,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>180</y>
+      <y>220</y>
       <width>201</width>
       <height>20</height>
      </rect>
@@ -244,7 +244,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>200</y>
+      <y>240</y>
       <width>201</width>
       <height>22</height>
      </rect>
@@ -254,13 +254,129 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>200</y>
+      <y>240</y>
       <width>201</width>
       <height>23</height>
      </rect>
     </property>
     <property name="text">
      <string>Refresh Port List</string>
+    </property>
+   </widget>
+   <widget class="QComboBox" name="usb_baud">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>290</y>
+      <width>201</width>
+      <height>22</height>
+     </rect>
+    </property>
+    <property name="currentText">
+     <string>115200</string>
+    </property>
+    <item>
+     <property name="text">
+      <string>4608000</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>2000000</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>1000000</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>921600</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>500000</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>460800</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>250000</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>230400</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>115200</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>57600</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>38400</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>31250</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>19200</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>9600</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>4800</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>2400</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>1200</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>300</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>270</y>
+      <width>201</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>USB Port Baud</string>
     </property>
    </widget>
   </widget>
