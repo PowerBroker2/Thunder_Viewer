@@ -8,7 +8,7 @@ from socket import gethostbyname, gethostname
 from socketserver import TCPServer, BaseRequestHandler
 from PyQt5.QtCore import QThread
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
-from pySerialTransfer import pySerialTransfer
+from pySerialTransfer import pySerialTransfer as transfer
 from WarThunder import general, telemetry, acmi
 from WarThunder.telemetry import combine_dicts
 from getpass import getuser
@@ -19,6 +19,7 @@ HOST         = gethostbyname(gethostname())
 APP_DIR      = os.path.dirname(os.path.realpath(__file__))
 STREAM_DIR   = os.path.join(APP_DIR, 'stream_log')
 STREAM_FILE  = os.path.join(STREAM_DIR, 'stream.acmi')
+LOGS_DIR     = os.path.join(APP_DIR, 'logs')
 TITLE_FORMAT = '{timestamp}_{user}.acmi'
 ACMI_HEADER  = {'DataSource': '',
                 'DataRecorder': '',
@@ -53,7 +54,7 @@ INITIAL_META = {'Slot': 0,
                 'Coalition': None}
 
 
-def format_header(grid_info, loc_time):
+def format_header_dict(grid_info, loc_time):
     '''
     Description:
     ------------
@@ -79,7 +80,7 @@ def format_header(grid_info, loc_time):
     
     return formatted_header
 
-def format_entry(telem, initial_entry=False):
+def format_entry_dict(telem, initial_entry=False):
     '''
     Description:
     ------------
@@ -172,6 +173,9 @@ class AppWindow(QMainWindow):
         
         self.connect_signals()
         self.init_recording_status()
+        self.update_port_list()
+        
+        self.ui.acmi_path.setText(LOGS_DIR)
     
     def connect_signals(self):
         self.ui.tacview_select.clicked.connect(self.get_tacview_install)
@@ -179,6 +183,7 @@ class AppWindow(QMainWindow):
         self.ui.launch_tacview_live.clicked.connect(self.launch_live)
         self.ui.record.clicked.connect(self.record_data)
         self.ui.stop.clicked.connect(self.stop_recording_data)
+        self.ui.port_refresh.clicked.connect(self.update_port_list)
     
     def get_tacview_install(self):
         path = QFileDialog.getOpenFileName(self, filter='Tacview (Tacview.exe Tacview64.exe)')[0]
@@ -197,10 +202,11 @@ class AppWindow(QMainWindow):
             print('ERROR: Tacview.exe not found')
         
     def record_data(self):
-        self.disable_inputs()
-        self.thread = RecordThread(self)
-        self.thread.start()
-        self.ui.recording.setChecked(True)
+        if not self.ui.recording.isChecked():
+            self.disable_inputs()
+            self.thread = RecordThread(self)
+            self.thread.start()
+            self.ui.recording.setChecked(True)
     
     def stop_recording_data(self):
         self.enable_inputs()
@@ -214,6 +220,11 @@ class AppWindow(QMainWindow):
     def init_recording_status(self):
         self.ui.recording.setDisabled(True)
         self.ui.recording.setChecked(False)
+    
+    def update_port_list(self):
+        ports = transfer.open_ports()
+        self.ui.usb_ports.clear()
+        self.ui.usb_ports.addItems(ports)
     
     def enable_inputs(self):
         self.change_inputs(True)
@@ -230,16 +241,23 @@ class AppWindow(QMainWindow):
         self.ui.live_telem_port.setEnabled(enable)
         self.ui.mqtt.setEnabled(enable)
         self.ui.mqtt_id.setEnabled(enable)
+        self.ui.usb_ports.setEnabled(enable)
+        self.ui.live_usb.setEnabled(enable)
 
 
 class RecordThread(QThread):
     def __init__(self, parent=None):
         super(RecordThread, self).__init__(parent)
         
-        self.telem  = telemetry.TelemInterface() # class used to query War Thunder telemetry
-        self.logger = acmi.ACMI()                # class used to log match data
+        self.telem   = telemetry.TelemInterface() # class used to query War Thunder telemetry
+        self.logger  = acmi.ACMI()                # class used to log match data
+        self.log_dir = parent.ui.acmi_path.text()
         self.mqtt_enable   = parent.ui.mqtt.isChecked()
         self.stream_enable = parent.ui.live_telem.isChecked()
+        self.usb_enable    = parent.ui.live_usb.isChecked()
+        
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
         
         if self.mqtt_enable:
             self.mqttc   = mqtt.Client() # class used to connect to remote players via MQTT
@@ -249,26 +267,44 @@ class RecordThread(QThread):
             self.stream_port = parent.ui.live_telem_port.value()
             self.thread = StreamThread(self)
             self.thread.start()
+        
+        if self.usb_enable:
+            self.usb_port = parent.ui.live_usb.text()
+            if not self.usb_port:
+                self.usb_enable = False
     
     def process_player(self):
         if self.telem.get_telemetry():
             if not self.header_inserted and self.telem.map_info.map_valid:
-                header = format_header(self.telem.map_info.grid_info, self.loc_time)
+                header = format_header_dict(self.telem.map_info.grid_info, self.loc_time)
                 self.logger.insert_user_header(header)
                 header_inserted = True
             
             if header_inserted:
                 if not self.meta_inserted:
-                    entry = format_entry(self.telem.full_telemetry, True)
+                    entry = format_entry_dict(self.telem.full_telemetry, True)
                     self.meta_inserted = True
                 else:
-                    entry = format_entry(self.telem.full_telemetry)
+                    entry = format_entry_dict(self.telem.full_telemetry)
                 self.logger.insert_entry(0, entry)
+            
+            if self.mqtt_enable:
+                #self.mqttc
+                pass
+            
+            if self.stream_enable:
+                log_line = self.logger.format_entry(0, entry)
+                with open(STREAM_FILE, 'a') as log:
+                    log.write(log_line)
+            
+            if self.usb_enable:
+                #pyserialtrasnfer
+                pass
         
     def run(self):
         self.loc_time = dt.datetime.now()
-        self.title    = TITLE_FORMAT.format(timestamp=self.loc_time.strftime('%Y_%m_%d_%H_%M_%S'),
-                                            user=getuser())
+        self.title = TITLE_FORMAT.format(timestamp=self.loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=getuser())
+        self.title = os.path.join(self.log_dir, self.title)
         
         self.logger.create(self.title)
         self.header_inserted = False
