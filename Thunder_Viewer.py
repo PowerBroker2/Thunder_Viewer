@@ -11,7 +11,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from WarThunder import general, telemetry, acmi
 from WarThunder.telemetry import combine_dicts
 from getpass import getuser
-from gui import Ui_FlightViewer
+from gui import Ui_ThunderViewer
 
 
 HOST         = gethostbyname(gethostname())
