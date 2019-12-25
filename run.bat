@@ -1,0 +1,2 @@
+python Flight_Viewer_with_GUI.py
+PAUSE
