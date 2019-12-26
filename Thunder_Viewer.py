@@ -211,6 +211,10 @@ class AppWindow(QMainWindow):
             
             if self.ui.mqtt.isChecked():
                 self.mqttc = mqtt.Client() # class used to connect to remote players via MQTT
+                self.mqtt_pub_th = MqttPubThread()
+                self.mqtt_pub_th.start()
+                self.mqtt_sub_th = MqttSubThread()
+                self.mqtt_sub_th.start()
             
             if self.ui.live_telem.isChecked():
                 self.stream_th = StreamThread(self)
@@ -225,8 +229,10 @@ class AppWindow(QMainWindow):
                 self.rec_th.terminate()
             if self.stream_th.isRunning():
                 self.stream_th.terminate()
-#            if self.mqtt_th.isRunning():
-#                self.m1tt_th.terminate()
+            if self.mqtt_pub_th.isRunning():
+                self.mqtt_pub_th.terminate()
+            if self.mqtt_sub_th.isRunning():
+                self.mqtt_sub_th.terminate()
         except AttributeError:
             pass
         self.ui.recording.setChecked(False)
@@ -394,6 +400,22 @@ class StreamHandler(BaseRequestHandler):
                     print(payload)
                     self.request.sendall(payload)
                     self.read_index += 1
+
+
+class MqttPubThread(QThread):
+    def __init__(self, parent=None):
+        super(MqttPubThread, self).__init__(parent)
+    
+    def run(self):
+        pass
+
+
+class MqttSubThread(QThread):
+    def __init__(self, parent=None):
+        super(MqttSubThread, self).__init__(parent)
+    
+    def run(self):
+        pass
 
 
 def main():
