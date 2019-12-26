@@ -4,20 +4,27 @@ import arrow
 import requests
 import datetime as dt
 import paho.mqtt.client as mqtt
+from time import sleep
+from getpass import getuser
 from socketserver import TCPServer, BaseRequestHandler
 from PyQt5.QtCore import QThread, QProcess
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from pySerialTransfer import pySerialTransfer as transfer
+from pySerialTransfer.pySerialTransfer import msb, lsb, byte_val
 from WarThunder import general, telemetry, acmi
 from WarThunder.telemetry import combine_dicts
-from getpass import getuser
 from gui import Ui_ThunderViewer
 
 
+BROKER_HOST  = 'broker.hivemq.com'
 APP_DIR      = os.path.dirname(os.path.realpath(__file__))
 STREAM_DIR   = os.path.join(APP_DIR, 'stream_log')
 STREAM_FILE  = os.path.join(STREAM_DIR, 'stream.acmi')
 LOGS_DIR     = os.path.join(APP_DIR, 'logs')
+MQTT_DIR     = os.path.join(APP_DIR, 'mqtt')
+USER_DIR     = os.path.join(MQTT_DIR, 'user')
+USER_FILE    = os.path.join(USER_DIR, 'user.acmi')
+REMOTE_DIR   = os.path.join(MQTT_DIR, 'remote_players')
 TITLE_FORMAT = '{timestamp}_{user}.acmi'
 ACMI_HEADER  = {'DataSource': '',
                 'DataRecorder': '',
@@ -163,6 +170,12 @@ def format_init_meta(telem):
 
 
 class AppWindow(QMainWindow):
+    '''
+    Description:
+    ------------
+    Main GUI window class
+    '''
+    
     def __init__(self):
         super().__init__()
         self.ui = Ui_ThunderViewer()
@@ -177,6 +190,12 @@ class AppWindow(QMainWindow):
         self.ui.usb_baud.setCurrentIndex(8) # default baud of 115200
     
     def connect_signals(self):
+        '''
+        Description:
+        ------------
+        Connect button clicks to callback functions
+        '''
+        
         self.ui.tacview_select.clicked.connect(self.get_tacview_install)
         self.ui.acmi_select.clicked.connect(self.get_acmi_dir)
         self.ui.launch_tacview_live.clicked.connect(self.launch_live)
@@ -204,6 +223,12 @@ class AppWindow(QMainWindow):
             print('ERROR: Tacview.exe not found')
         
     def record_data(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         if not self.ui.recording.isChecked():
             self.disable_inputs()
             self.rec_th = RecordThread(self)
@@ -211,8 +236,12 @@ class AppWindow(QMainWindow):
             
             if self.ui.mqtt.isChecked():
                 self.mqttc = mqtt.Client() # class used to connect to remote players via MQTT
-                self.mqtt_pub_th = MqttPubThread()
-                self.mqtt_pub_th.start()
+                
+                while self.mqttc.connect(BROKER_HOST):
+                    print('ERROR: Could not connect to MQTT broker host: {}'.format(BROKER_HOST))
+                    print('\tRetrying...')
+                    sleep(1)
+                
                 self.mqtt_sub_th = MqttSubThread()
                 self.mqtt_sub_th.start()
             
@@ -223,25 +252,42 @@ class AppWindow(QMainWindow):
             self.ui.recording.setChecked(True)
     
     def stop_recording_data(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         self.enable_inputs()
         try:
             if self.rec_th.isRunning():
                 self.rec_th.terminate()
             if self.stream_th.isRunning():
                 self.stream_th.terminate()
-            if self.mqtt_pub_th.isRunning():
-                self.mqtt_pub_th.terminate()
             if self.mqtt_sub_th.isRunning():
                 self.mqtt_sub_th.terminate()
         except AttributeError:
             pass
+        
         self.ui.recording.setChecked(False)
     
     def init_recording_status(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         self.ui.recording.setDisabled(True)
         self.ui.recording.setChecked(False)
     
     def update_port_list(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         ports = transfer.open_ports()
         self.ui.usb_ports.clear()
         self.ui.usb_ports.addItems(ports)
@@ -253,6 +299,12 @@ class AppWindow(QMainWindow):
         self.change_inputs(False)
     
     def change_inputs(self, enable):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         self.ui.tacview_path.setEnabled(enable)
         self.ui.tacview_select.setEnabled(enable)
         self.ui.acmi_path.setEnabled(enable)
@@ -266,6 +318,12 @@ class AppWindow(QMainWindow):
 
 
 class RecordThread(QThread):
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
     def __init__(self, parent=None):
         super(RecordThread, self).__init__(parent)
         
@@ -287,7 +345,48 @@ class RecordThread(QThread):
             else:
                 self.transfer = transfer.SerialTransfer(self.usb_port, self.usb_baud)
     
-    def process_player(self):
+    def send_usb_telem(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        # mulitply float values by a constant so as to preserve as much
+        # of the value's precision as possible
+        pitch = int(self.telem.basic_telemetry['pitch'] * 350)
+        roll  = int(self.telem.basic_telemetry['roll']  * 350)
+        hdg   = int(self.telem.basic_telemetry['heading'])
+        alt   = int(self.telem.basic_telemetry['altitude'])
+        lat   = int(self.telem.basic_telemetry['lat'] * 5000)
+        lon   = int(self.telem.basic_telemetry['lon'] * 5000)
+        
+        self.transfer.txBuff[0]  = msb(pitch)
+        self.transfer.txBuff[1]  = lsb(pitch)
+        self.transfer.txBuff[2]  = msb(roll)
+        self.transfer.txBuff[3]  = lsb(roll)
+        self.transfer.txBuff[4]  = msb(hdg)
+        self.transfer.txBuff[5]  = lsb(hdg)
+        self.transfer.txBuff[6]  = msb(alt)
+        self.transfer.txBuff[7]  = lsb(alt)
+        self.transfer.txBuff[8]  = msb(lat)
+        self.transfer.txBuff[9]  = byte_val(lat, 2)
+        self.transfer.txBuff[10] = byte_val(lat, 1)
+        self.transfer.txBuff[11] = lsb(lat)
+        self.transfer.txBuff[12] = msb(lon)
+        self.transfer.txBuff[13] = byte_val(lon, 2)
+        self.transfer.txBuff[14] = byte_val(lon, 1)
+        self.transfer.txBuff[15] = lsb(lon)
+        
+        self.transfer.send(16)
+    
+    def process_player_data(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         if self.telem.get_telemetry():
             if not self.header_inserted and self.telem.map_info.map_valid:
                 header = format_header_dict(self.telem.map_info.grid_info, self.loc_time)
@@ -309,44 +408,24 @@ class RecordThread(QThread):
             if self.stream_enable:
                 log_line = self.logger.format_entry(0, entry)
                 
-                if not os.path.exists(STREAM_DIR):
-                    os.makedirs(STREAM_DIR)
                 if not os.path.exists(STREAM_FILE):
+                    if not os.path.exists(STREAM_DIR):
+                        os.makedirs(STREAM_DIR)
                     init_stream_log()
-                else:
-                    with open(STREAM_FILE, 'a') as log:
-                        log.write(log_line)
+                
+                with open(STREAM_FILE, 'a') as log:
+                    log.write(log_line)
             
             if self.usb_enable:
-                # mulitply float values by a constant so as to preserve as much
-                # of the value's precision as possible
-                pitch = int(self.telem.basic_telemetry['pitch'] * 350)
-                roll  = int(self.telem.basic_telemetry['roll']  * 350)
-                hdg   = int(self.telem.basic_telemetry['heading'])
-                alt   = int(self.telem.basic_telemetry['altitude'])
-                lat   = int(self.telem.basic_telemetry['lat'] * 5000)
-                lon   = int(self.telem.basic_telemetry['lon'] * 5000)
-                
-                self.transfer.txBuff[0]  = transfer.msb(pitch)
-                self.transfer.txBuff[1]  = transfer.lsb(pitch)
-                self.transfer.txBuff[2]  = transfer.msb(roll)
-                self.transfer.txBuff[3]  = transfer.lsb(roll)
-                self.transfer.txBuff[4]  = transfer.msb(hdg)
-                self.transfer.txBuff[5]  = transfer.lsb(hdg)
-                self.transfer.txBuff[6]  = transfer.msb(alt)
-                self.transfer.txBuff[7]  = transfer.lsb(alt)
-                self.transfer.txBuff[8]  = transfer.msb(lat)
-                self.transfer.txBuff[9]  = transfer.byte_val(lat, 2)
-                self.transfer.txBuff[10] = transfer.byte_val(lat, 1)
-                self.transfer.txBuff[11] = transfer.lsb(lat)
-                self.transfer.txBuff[12] = transfer.msb(lon)
-                self.transfer.txBuff[13] = transfer.byte_val(lon, 2)
-                self.transfer.txBuff[14] = transfer.byte_val(lon, 1)
-                self.transfer.txBuff[15] = transfer.lsb(lon)
-                
-                self.transfer.send(16)
+                self.send_usb_telem()
         
     def run(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         self.loc_time = dt.datetime.now()
         self.title = TITLE_FORMAT.format(timestamp=self.loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=getuser())
         self.title = os.path.join(self.log_dir, self.title)
@@ -356,19 +435,21 @@ class RecordThread(QThread):
         self.meta_inserted   = False
         
         while True:
-            self.process_player()
+            self.process_player_data()
 
 
 class StreamThread(QThread):
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
     def __init__(self, parent=None):
         super(StreamThread, self).__init__(parent)
         self.port = parent.ui.live_telem_port.value()
         
     def run(self):
-        if not os.path.exists(STREAM_DIR):
-            os.makedirs(STREAM_DIR)
-        init_stream_log()
-        
         try:
             self.server = TCPServer(('localhost', self.port), StreamHandler)
             self.server.serve_forever()
@@ -377,18 +458,19 @@ class StreamThread(QThread):
 
 
 class StreamHandler(BaseRequestHandler):
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
     def handle(self):
         self.request.sendall(b'XtraLib.Stream.0\nTacview.RealTimeTelemetry.0\nThunder_Viewer\n\x00')
         self.data = self.request.recv(1024).strip()
         self.read_index = 0
         
         while True:
-            if not os.path.exists(STREAM_FILE):
-                if not os.path.exists(STREAM_DIR):
-                    os.makedirs(STREAM_DIR)
-                self.read_index = 0
-                init_stream_log()
-            else:
+            if os.path.exists(STREAM_FILE):
                 try:
                     with open(STREAM_FILE, 'r') as f:
                         log_line = f.readlines()[self.read_index]
@@ -400,17 +482,21 @@ class StreamHandler(BaseRequestHandler):
                     print(payload)
                     self.request.sendall(payload)
                     self.read_index += 1
+            else:
+                if not os.path.exists(STREAM_DIR):
+                    os.makedirs(STREAM_DIR)
+                self.read_index = 0
+                init_stream_log()
 
 
-class MqttPubThread(QThread):
-    def __init__(self, parent=None):
-        super(MqttPubThread, self).__init__(parent)
-    
-    def run(self):
-        pass
-
-
+#copy reference time to compare to incoming timestamps
 class MqttSubThread(QThread):
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
     def __init__(self, parent=None):
         super(MqttSubThread, self).__init__(parent)
     
@@ -419,20 +505,37 @@ class MqttSubThread(QThread):
 
 
 def main():
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
     app = QApplication(sys.argv)
     w = AppWindow()
     w.show()
     sys.exit(app.exec_())
 
 def init_stream_log():
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
     with open(STREAM_FILE, 'w') as log:
         log.write(acmi.header_mandatory.format(filetype='text/acmi/tacview',
                                                acmiver='2.1',
                                                reftime=str(arrow.utcnow()).split('+')[0]))
 
 def garbage_collection():
-    if os.path.exists(STREAM_FILE):
-        init_stream_log()
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
+    init_stream_log()
 
 
 if __name__ == "__main__":
