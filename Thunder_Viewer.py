@@ -1,12 +1,11 @@
 import os
 import sys
-import linecache
-import subprocess
+import arrow
+import requests
 import datetime as dt
 import paho.mqtt.client as mqtt
-from socket import gethostbyname, gethostname
 from socketserver import TCPServer, BaseRequestHandler
-from PyQt5.QtCore import QThread
+from PyQt5.QtCore import QThread, QProcess
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from pySerialTransfer import pySerialTransfer as transfer
 from WarThunder import general, telemetry, acmi
@@ -15,7 +14,6 @@ from getpass import getuser
 from gui import Ui_ThunderViewer
 
 
-HOST         = gethostbyname(gethostname())
 APP_DIR      = os.path.dirname(os.path.realpath(__file__))
 STREAM_DIR   = os.path.join(APP_DIR, 'stream_log')
 STREAM_FILE  = os.path.join(STREAM_DIR, 'stream.acmi')
@@ -198,22 +196,37 @@ class AppWindow(QMainWindow):
     
     def launch_live(self):
         try:
-            subprocess.call([self.ui.tacview_path.text(), '/ConnectRealTimeTelemetry'])
+            if not os.path.exists(self.ui.tacview_path.text()):
+                raise FileNotFoundError
+            self.process = QProcess()
+            self.process.startDetached('"{}" {}'.format(self.ui.tacview_path.text(), '/ConnectRealTimeTelemetry'))
         except (FileNotFoundError, OSError):
             print('ERROR: Tacview.exe not found')
         
     def record_data(self):
         if not self.ui.recording.isChecked():
             self.disable_inputs()
-            self.thread = RecordThread(self)
-            self.thread.start()
+            self.rec_th = RecordThread(self)
+            self.rec_th.start()
+            
+            if self.ui.mqtt.isChecked():
+                self.mqttc = mqtt.Client() # class used to connect to remote players via MQTT
+            
+            if self.ui.live_telem.isChecked():
+                self.stream_th = StreamThread(self)
+                self.stream_th.start()
+            
             self.ui.recording.setChecked(True)
     
     def stop_recording_data(self):
         self.enable_inputs()
         try:
-            if self.thread.isRunning():
-                self.thread.terminate()
+            if self.rec_th.isRunning():
+                self.rec_th.terminate()
+            if self.stream_th.isRunning():
+                self.stream_th.terminate()
+#            if self.mqtt_th.isRunning():
+#                self.m1tt_th.terminate()
         except AttributeError:
             pass
         self.ui.recording.setChecked(False)
@@ -260,15 +273,6 @@ class RecordThread(QThread):
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         
-        if self.mqtt_enable:
-            self.mqttc   = mqtt.Client() # class used to connect to remote players via MQTT
-            self.mqtt_id = parent.ui.mqtt_id.text()
-        
-        if self.stream_enable:
-            self.stream_port = parent.ui.live_telem_port.value()
-            self.thread = StreamThread(self)
-            self.thread.start()
-        
         if self.usb_enable:
             self.usb_port = parent.ui.live_usb.text()
             self.usb_baud = parent.ui.usb_baud.text()
@@ -282,9 +286,9 @@ class RecordThread(QThread):
             if not self.header_inserted and self.telem.map_info.map_valid:
                 header = format_header_dict(self.telem.map_info.grid_info, self.loc_time)
                 self.logger.insert_user_header(header)
-                header_inserted = True
+                self.header_inserted = True
             
-            if header_inserted:
+            if self.header_inserted:
                 if not self.meta_inserted:
                     entry = format_entry_dict(self.telem.full_telemetry, True)
                     self.meta_inserted = True
@@ -298,8 +302,14 @@ class RecordThread(QThread):
             
             if self.stream_enable:
                 log_line = self.logger.format_entry(0, entry)
-                with open(STREAM_FILE, 'a') as log:
-                    log.write(log_line)
+                
+                if not os.path.exists(STREAM_DIR):
+                    os.makedirs(STREAM_DIR)
+                if not os.path.exists(STREAM_FILE):
+                    init_stream_log()
+                else:
+                    with open(STREAM_FILE, 'a') as log:
+                        log.write(log_line)
             
             if self.usb_enable:
                 # mulitply float values by a constant so as to preserve as much
@@ -346,32 +356,44 @@ class RecordThread(QThread):
 class StreamThread(QThread):
     def __init__(self, parent=None):
         super(StreamThread, self).__init__(parent)
-        
-        self.port = parent.stream_port()
+        self.port = parent.ui.live_telem_port.value()
         
     def run(self):
-        server = TCPServer((HOST, self.port), StreamHandler)
-        server.serve_forever()
+        if not os.path.exists(STREAM_DIR):
+            os.makedirs(STREAM_DIR)
+        init_stream_log()
+        
+        try:
+            self.server = TCPServer(('localhost', self.port), StreamHandler)
+            self.server.serve_forever()
+        except OSError:
+            print('ERROR: TCP port in use - please pick a different port')
 
 
 class StreamHandler(BaseRequestHandler):
     def handle(self):
         self.request.sendall(b'XtraLib.Stream.0\nTacview.RealTimeTelemetry.0\nThunder_Viewer\n\x00')
         self.data = self.request.recv(1024).strip()
-        read_index = 0
+        self.read_index = 0
         
         while True:
             if not os.path.exists(STREAM_FILE):
-                read_index = 0
-                os.makedirs(STREAM_DIR)
-                with open(STREAM_FILE, 'w'):
-                    pass
+                if not os.path.exists(STREAM_DIR):
+                    os.makedirs(STREAM_DIR)
+                self.read_index = 0
+                init_stream_log()
             else:
-                log_line = linecache.getline(STREAM_FILE, read_index)
+                try:
+                    with open(STREAM_FILE, 'r') as f:
+                        log_line = f.readlines()[self.read_index]
+                except (FileNotFoundError, IndexError):
+                    log_line = ''
                 
                 if log_line:
-                    self.request.sendall(bytes(log_line, encoding='utf8'))
-                    read_index += 1
+                    payload = bytes(log_line, encoding='utf8')
+                    print(payload)
+                    self.request.sendall(payload)
+                    self.read_index += 1
 
 
 def main():
@@ -380,16 +402,21 @@ def main():
     w.show()
     sys.exit(app.exec_())
 
+def init_stream_log():
+    with open(STREAM_FILE, 'w') as log:
+        log.write(acmi.header_mandatory.format(filetype='text/acmi/tacview',
+                                               acmiver='2.1',
+                                               reftime=str(arrow.utcnow()).split('+')[0]))
+
 def garbage_collection():
     if os.path.exists(STREAM_FILE):
-        with open(STREAM_FILE, 'w'):
-            pass
+        init_stream_log()
 
 
 if __name__ == "__main__":
     try:
         main()
-    except (SystemExit, KeyboardInterrupt):
+    except (SystemExit, KeyboardInterrupt, requests.exceptions.ConnectionError):
         garbage_collection()
 
 
