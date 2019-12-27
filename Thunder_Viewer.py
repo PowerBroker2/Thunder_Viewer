@@ -1,10 +1,10 @@
 import os
 import sys
+import json
 import arrow
 import requests
 import datetime as dt
 import paho.mqtt.client as mqtt
-from time import sleep
 from getpass import getuser
 from socketserver import TCPServer, BaseRequestHandler
 from PyQt5.QtCore import QThread, QProcess
@@ -16,14 +16,13 @@ from WarThunder.telemetry import combine_dicts
 from gui import Ui_ThunderViewer
 
 
+USERNAME     = getuser()
 BROKER_HOST  = 'broker.hivemq.com'
 APP_DIR      = os.path.dirname(os.path.realpath(__file__))
 STREAM_DIR   = os.path.join(APP_DIR, 'stream_log')
 STREAM_FILE  = os.path.join(STREAM_DIR, 'stream.acmi')
 LOGS_DIR     = os.path.join(APP_DIR, 'logs')
 MQTT_DIR     = os.path.join(APP_DIR, 'mqtt')
-USER_DIR     = os.path.join(MQTT_DIR, 'user')
-USER_FILE    = os.path.join(USER_DIR, 'user.acmi')
 REMOTE_DIR   = os.path.join(MQTT_DIR, 'remote_players')
 TITLE_FORMAT = '{timestamp}_{user}.acmi'
 ACMI_HEADER  = {'DataSource': '',
@@ -32,7 +31,7 @@ ACMI_HEADER  = {'DataSource': '',
                 'Title': '',
                 'Comments': '',
                 'ReferenceLongitude': 0,
-                'ReferenceLatitude':  0}
+                'ReferenceLatitude': 0}
 ACMI_ENTRY   = {'T': '',
                 'Throttle': 0,
                 'RollControlInput': 0,
@@ -214,6 +213,12 @@ class AppWindow(QMainWindow):
             self.ui.acmi_path.setText(path)
     
     def launch_live(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         try:
             if not os.path.exists(self.ui.tacview_path.text()):
                 raise FileNotFoundError
@@ -231,17 +236,8 @@ class AppWindow(QMainWindow):
         
         if not self.ui.recording.isChecked():
             self.disable_inputs()
-            self.rec_th = RecordThread(self)
-            self.rec_th.start()
             
             if self.ui.mqtt.isChecked():
-                self.mqttc = mqtt.Client() # class used to connect to remote players via MQTT
-                
-                while self.mqttc.connect(BROKER_HOST):
-                    print('ERROR: Could not connect to MQTT broker host: {}'.format(BROKER_HOST))
-                    print('\tRetrying...')
-                    sleep(1)
-                
                 self.mqtt_sub_th = MqttSubThread()
                 self.mqtt_sub_th.start()
             
@@ -249,6 +245,8 @@ class AppWindow(QMainWindow):
                 self.stream_th = StreamThread(self)
                 self.stream_th.start()
             
+            self.rec_th = RecordThread(self)
+            self.rec_th.start()
             self.ui.recording.setChecked(True)
     
     def stop_recording_data(self):
@@ -259,11 +257,20 @@ class AppWindow(QMainWindow):
         '''
         
         self.enable_inputs()
+        
         try:
             if self.rec_th.isRunning():
                 self.rec_th.terminate()
+        except AttributeError:
+            pass
+        
+        try:
             if self.stream_th.isRunning():
                 self.stream_th.terminate()
+        except AttributeError:
+            pass
+        
+        try:
             if self.mqtt_sub_th.isRunning():
                 self.mqtt_sub_th.terminate()
         except AttributeError:
@@ -337,9 +344,21 @@ class RecordThread(QThread):
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         
+        if self.mqtt_enable:
+            if not os.path.exists(REMOTE_DIR):
+                os.makedirs(REMOTE_DIR)
+            
+            self.mqtt_id = parent.ui.mqtt_id.text()
+            self.mqttc   = mqtt.Client()
+            
+            if self.mqttc.connect(BROKER_HOST):
+                print('ERROR: Could not connect to MQTT broker {}'.format(BROKER_HOST))
+                self.mqtt_enable = False
+        
         if self.usb_enable:
             self.usb_port = parent.ui.live_usb.text()
             self.usb_baud = parent.ui.usb_baud.text()
+            
             if not self.usb_port:
                 self.usb_enable = False
             else:
@@ -401,13 +420,15 @@ class RecordThread(QThread):
                     entry = format_entry_dict(self.telem.full_telemetry)
                 self.logger.insert_entry(0, entry)
             
+            log_line = self.logger.format_entry(0, entry)
+            
             if self.mqtt_enable:
-                #self.mqttc
-                pass
+                mqtt_payload = json.dumps({'player':   USERNAME,
+                                           'ref_time': self.logger.reference_time,
+                                           'entry':    log_line})
+                self.mqttc.publish(self.mqtt_id, mqtt_payload,)
             
             if self.stream_enable:
-                log_line = self.logger.format_entry(0, entry)
-                
                 if not os.path.exists(STREAM_FILE):
                     if not os.path.exists(STREAM_DIR):
                         os.makedirs(STREAM_DIR)
@@ -427,7 +448,7 @@ class RecordThread(QThread):
         '''
         
         self.loc_time = dt.datetime.now()
-        self.title = TITLE_FORMAT.format(timestamp=self.loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=getuser())
+        self.title = TITLE_FORMAT.format(timestamp=self.loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=USERNAME)
         self.title = os.path.join(self.log_dir, self.title)
         
         self.logger.create(self.title)
@@ -469,6 +490,10 @@ class StreamHandler(BaseRequestHandler):
         self.data = self.request.recv(1024).strip()
         self.read_index = 0
         
+        if not os.path.exists(STREAM_DIR):
+            os.makedirs(STREAM_DIR)
+        init_stream_log()
+        
         while True:
             if os.path.exists(STREAM_FILE):
                 try:
@@ -478,10 +503,14 @@ class StreamHandler(BaseRequestHandler):
                     log_line = ''
                 
                 if log_line:
-                    payload = bytes(log_line, encoding='utf8')
-                    print(payload)
-                    self.request.sendall(payload)
-                    self.read_index += 1
+                    try:
+                        payload = bytes(log_line, encoding='utf8')
+                        self.request.sendall(payload)
+                        self.read_index += 1
+                    except ConnectionAbortedError:
+                        print('Tacview closed live-telemetry connection')
+                        init_stream_log()
+                        return
             else:
                 if not os.path.exists(STREAM_DIR):
                     os.makedirs(STREAM_DIR)
@@ -499,9 +528,28 @@ class MqttSubThread(QThread):
     
     def __init__(self, parent=None):
         super(MqttSubThread, self).__init__(parent)
+        
+        self.mqtt_enable = True
+        self.mqtt_id     = parent.ui.mqtt_id.text()
+        self.mqttc       = mqtt.Client()
+        self.mqttc.on_connect = self.on_connect
+        self.mqttc.on_message = self.on_message
+        
+        if self.mqttc.connect(BROKER_HOST):
+            print('ERROR: Could not connect to MQTT broker {}'.format(BROKER_HOST))
+            self.mqtt_enable = False
+    
+    def on_connect(self, client, userdata, flags, rc):
+    	client.subscribe(topic=self.mqtt_id)
+    
+    def on_message(self, client, userdata, message):
+    	print('------------------------------')
+    	print('topic: %s' % message.topic)
+    	print('payload: %s' % message.payload)
     
     def run(self):
-        pass
+        if self.mqtt_enable:
+            self.mqttc.loop_forever()
 
 
 def main():
