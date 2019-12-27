@@ -84,7 +84,7 @@ def format_header_dict(grid_info, loc_time):
     
     return formatted_header
 
-def format_entry_dict(telem, initial_entry=False):
+def format_entry_dict(telem, team_flag=True, initial_entry=False):
     '''
     Description:
     ------------
@@ -143,11 +143,11 @@ def format_entry_dict(telem, initial_entry=False):
     
     if initial_entry:
         formatted_entry = combine_dicts(formatted_entry,
-                                        format_init_meta(telem))
+                                        format_init_meta(telem, team_flag))
     
     return formatted_entry
 
-def format_init_meta(telem):
+def format_init_meta(telem, team_flag=True):
     '''
     Description:
     ------------
@@ -164,6 +164,13 @@ def format_init_meta(telem):
     
     formatted_meta['Name'] = telem['type']
     formatted_meta['Type'] = 'Air+FixedWing'
+    
+    if team_flag:
+        formatted_meta['Coalition'] = 'Blue_Team'
+        formatted_meta['Color']     = 'Blue'
+    else:
+        formatted_meta['Coalition'] = 'Red_Team'
+        formatted_meta['Color']     = 'Red'
     
     return formatted_meta
 
@@ -186,7 +193,6 @@ class AppWindow(QMainWindow):
         self.update_port_list()
         
         self.ui.acmi_path.setText(LOGS_DIR)
-        self.ui.usb_baud.setCurrentIndex(8) # default baud of 115200
     
     def connect_signals(self):
         '''
@@ -340,6 +346,7 @@ class RecordThread(QThread):
         self.mqtt_enable   = parent.ui.mqtt.isChecked()
         self.stream_enable = parent.ui.live_telem.isChecked()
         self.usb_enable    = parent.ui.live_usb.isChecked()
+        self.team          = not parent.ui.team.currentIndex()
         
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -414,10 +421,13 @@ class RecordThread(QThread):
             
             if self.header_inserted:
                 if not self.meta_inserted:
-                    entry = format_entry_dict(self.telem.full_telemetry, True)
+                    entry = format_entry_dict(self.telem.full_telemetry,
+                                              coalition_allies=self.team,
+                                              initial_entry=True)
                     self.meta_inserted = True
                 else:
-                    entry = format_entry_dict(self.telem.full_telemetry)
+                    entry = format_entry_dict(self.telem.full_telemetry,
+                                              coalition_allies=self.team)
                 self.logger.insert_entry(0, entry)
             
             log_line = self.logger.format_entry(0, entry)
