@@ -24,6 +24,7 @@ STREAM_FILE  = os.path.join(STREAM_DIR, 'stream.acmi')
 LOGS_DIR     = os.path.join(APP_DIR, 'logs')
 MQTT_DIR     = os.path.join(APP_DIR, 'mqtt')
 REMOTE_DIR   = os.path.join(MQTT_DIR, 'remote_players')
+REFTIME_FILE = os.path.join(MQTT_DIR, 'ref_time.txt')
 TITLE_FORMAT = '{timestamp}_{user}.acmi'
 ACMI_HEADER  = {'DataSource': '',
                 'DataRecorder': '',
@@ -56,6 +57,7 @@ INITIAL_META = {'Slot': 0,
                 'Color': None,
                 'Callsign': None,
                 'Coalition': None}
+glob_ref_time = False
 
 
 def format_header_dict(grid_info, loc_time):
@@ -244,7 +246,7 @@ class AppWindow(QMainWindow):
             self.disable_inputs()
             
             if self.ui.mqtt.isChecked():
-                self.mqtt_sub_th = MqttSubThread()
+                self.mqtt_sub_th = MqttSubThread(self)
                 self.mqtt_sub_th.start()
             
             if self.ui.live_telem.isChecked():
@@ -371,6 +373,20 @@ class RecordThread(QThread):
             else:
                 self.transfer = transfer.SerialTransfer(self.usb_port, self.usb_baud)
     
+    def init_mqtt_struct(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        if not os.path.exists(REMOTE_DIR):
+            os.makedirs(REMOTE_DIR)
+            
+        with open(REFTIME_FILE, 'w') as f:
+            print(str(self.logger.reference_time).split('+')[0])
+            f.write(str(self.logger.reference_time).split('+')[0])
+    
     def send_usb_telem(self):
         '''
         Description:
@@ -422,19 +438,19 @@ class RecordThread(QThread):
             if self.header_inserted:
                 if not self.meta_inserted:
                     entry = format_entry_dict(self.telem.full_telemetry,
-                                              coalition_allies=self.team,
+                                              team_flag=self.team,
                                               initial_entry=True)
                     self.meta_inserted = True
                 else:
                     entry = format_entry_dict(self.telem.full_telemetry,
-                                              coalition_allies=self.team)
+                                              team_flag=self.team)
                 self.logger.insert_entry(0, entry)
             
             log_line = self.logger.format_entry(0, entry)
             
             if self.mqtt_enable:
                 mqtt_payload = json.dumps({'player':   USERNAME,
-                                           'ref_time': self.logger.reference_time,
+                                           'ref_time': str(self.logger.reference_time).split('+')[0],
                                            'entry':    log_line})
                 self.mqttc.publish(self.mqtt_id, mqtt_payload,)
             
@@ -465,7 +481,12 @@ class RecordThread(QThread):
         self.header_inserted = False
         self.meta_inserted   = False
         
+        self.init_mqtt_struct()
+        
         while True:
+            if not os.path.exists(REFTIME_FILE):
+                self.init_mqtt_struct()
+            
             self.process_player_data()
 
 
@@ -539,9 +560,10 @@ class MqttSubThread(QThread):
     def __init__(self, parent=None):
         super(MqttSubThread, self).__init__(parent)
         
-        self.mqtt_enable = True
-        self.mqtt_id     = parent.ui.mqtt_id.text()
-        self.mqttc       = mqtt.Client()
+        self.stream_enable = parent.ui.live_telem.isChecked()
+        self.mqtt_enable   = True
+        self.mqtt_id       = parent.ui.mqtt_id.text()
+        self.mqttc         = mqtt.Client()
         self.mqttc.on_connect = self.on_connect
         self.mqttc.on_message = self.on_message
         
@@ -550,12 +572,33 @@ class MqttSubThread(QThread):
             self.mqtt_enable = False
     
     def on_connect(self, client, userdata, flags, rc):
-    	client.subscribe(topic=self.mqtt_id)
+        client.subscribe(topic=self.mqtt_id)
     
     def on_message(self, client, userdata, message):
-    	print('------------------------------')
-    	print('topic: %s' % message.topic)
-    	print('payload: %s' % message.payload)
+        try:
+            payload = json.loads(message.payload)
+            
+            if payload['player'] == USERNAME: #-------------------------------------------------------------------------< RESET MEs
+                with open(REFTIME_FILE, 'r') as f:
+                    user_tref = arrow.arrow.datetime.strptime(f.read(), '%Y-%m-%dT%H:%M:%S.%f')
+                
+                remote_tref   = arrow.arrow.datetime.strptime(payload['ref_time'], '%Y-%m-%dT%H:%M:%S.%f')
+                remote_tstamp = float(payload['entry'].split('\n')[0].replace('#', ''))
+                remote_tstamp_str = str(remote_tstamp)
+                
+                sample_dt   = remote_tref + arrow.arrow.timedelta(seconds=remote_tstamp)
+                true_tstamp = '{:0.2f}'.format((sample_dt - user_tref).total_seconds())
+                payload['entry'].replace(remote_tstamp_str, true_tstamp)
+                
+                if self.stream_enable:
+                    #save to stream file
+                    pass
+                
+                #save/create to indv file w/ generic header
+                
+        except:
+            import traceback
+            traceback.print_exc()
     
     def run(self):
         if self.mqtt_enable:
