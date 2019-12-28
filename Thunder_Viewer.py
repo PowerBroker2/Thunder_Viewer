@@ -376,8 +376,8 @@ class RecordThread(QThread):
                 self.mqtt_enable = False
         
         if self.usb_enable:
-            self.usb_port = parent.ui.live_usb.text()
-            self.usb_baud = parent.ui.usb_baud.text()
+            self.usb_port = parent.ui.usb_ports.currentText()
+            self.usb_baud = int(parent.ui.usb_baud.currentText())
             
             if not self.usb_port:
                 self.usb_enable = False
@@ -476,7 +476,11 @@ class RecordThread(QThread):
                     log.write(log_line)
             
             if self.usb_enable:
-                self.send_usb_telem()
+                try:
+                    self.send_usb_telem()
+                except ValueError:
+                    print('ERROR: Could not communicate with USB device - Ending USB streaming')
+                    self.usb_enable = False
         
     def run(self):
         '''

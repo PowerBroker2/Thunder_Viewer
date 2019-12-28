@@ -88,7 +88,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>MQTT Session ID</string>
+     <string>Remote Session ID</string>
     </property>
    </widget>
    <widget class="QCheckBox" name="mqtt">
@@ -101,7 +101,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>MQTT Messaging Enabled</string>
+     <string>Remote Session Enabled</string>
     </property>
    </widget>
    <widget class="QPushButton" name="acmi_select">
