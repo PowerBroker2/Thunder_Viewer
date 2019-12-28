@@ -5,6 +5,7 @@ import arrow
 import requests
 import datetime as dt
 import paho.mqtt.client as mqtt
+from random import randint
 from getpass import getuser
 from socketserver import TCPServer, BaseRequestHandler
 from PyQt5.QtCore import QThread, QProcess
@@ -18,13 +19,14 @@ from gui import Ui_ThunderViewer
 
 USERNAME     = getuser()
 BROKER_HOST  = 'broker.hivemq.com'
+TIME_FORMAT  = '%Y-%m-%dT%H:%M:%S.%f'
 APP_DIR      = os.path.dirname(os.path.realpath(__file__))
 STREAM_DIR   = os.path.join(APP_DIR, 'stream_log')
 STREAM_FILE  = os.path.join(STREAM_DIR, 'stream.acmi')
 LOGS_DIR     = os.path.join(APP_DIR, 'logs')
 MQTT_DIR     = os.path.join(APP_DIR, 'mqtt')
 REMOTE_DIR   = os.path.join(MQTT_DIR, 'remote_players')
-REFTIME_FILE = os.path.join(MQTT_DIR, 'ref_time.txt')
+REF_FILE     = os.path.join(MQTT_DIR, 'reference.txt')
 TITLE_FORMAT = '{timestamp}_{user}.acmi'
 ACMI_HEADER  = {'DataSource': '',
                 'DataRecorder': '',
@@ -175,6 +177,15 @@ def format_init_meta(telem, team_flag=True):
         formatted_meta['Color']     = 'Red'
     
     return formatted_meta
+
+def gen_id():
+    '''
+    Description:
+    ------------
+    TODO
+    '''
+    
+    return str(hex(randint(1, acmi.MAX_NUM_OBJS + 2))[2:]).upper()
 
 
 class AppWindow(QMainWindow):
@@ -383,9 +394,10 @@ class RecordThread(QThread):
         if not os.path.exists(REMOTE_DIR):
             os.makedirs(REMOTE_DIR)
             
-        with open(REFTIME_FILE, 'w') as f:
-            print(str(self.logger.reference_time).split('+')[0])
+        with open(REF_FILE, 'w') as f:
             f.write(str(self.logger.reference_time).split('+')[0])
+            f.write('\n')
+            f.write(self.logger.obj_ids['0'])
     
     def send_usb_telem(self):
         '''
@@ -484,7 +496,7 @@ class RecordThread(QThread):
         self.init_mqtt_struct()
         
         while True:
-            if not os.path.exists(REFTIME_FILE):
+            if not os.path.exists(REF_FILE):
                 self.init_mqtt_struct()
             
             self.process_player_data()
@@ -549,7 +561,6 @@ class StreamHandler(BaseRequestHandler):
                 init_stream_log()
 
 
-#copy reference time to compare to incoming timestamps
 class MqttSubThread(QThread):
     '''
     Description:
@@ -566,6 +577,8 @@ class MqttSubThread(QThread):
         self.mqttc         = mqtt.Client()
         self.mqttc.on_connect = self.on_connect
         self.mqttc.on_message = self.on_message
+        self.remote_players   = {}
+        self.ids_in_use       = []
         
         if self.mqttc.connect(BROKER_HOST):
             print('ERROR: Could not connect to MQTT broker {}'.format(BROKER_HOST))
@@ -578,11 +591,15 @@ class MqttSubThread(QThread):
         try:
             payload = json.loads(message.payload)
             
-            if payload['player'] == USERNAME: #-------------------------------------------------------------------------< RESET MEs
-                with open(REFTIME_FILE, 'r') as f:
-                    user_tref = arrow.arrow.datetime.strptime(f.read(), '%Y-%m-%dT%H:%M:%S.%f')
+            if not payload['player'] == USERNAME:
+                with open(REF_FILE, 'r') as f:
+                    user_tref   = arrow.arrow.datetime.strptime(f.readline(), TIME_FORMAT)
+                    user_obj_id = f.readline()
+                    
+                    if user_obj_id not in self.ids_in_use:
+                        self.ids_in_use.append(user_obj_id)
                 
-                remote_tref   = arrow.arrow.datetime.strptime(payload['ref_time'], '%Y-%m-%dT%H:%M:%S.%f')
+                remote_tref   = arrow.arrow.datetime.strptime(payload['ref_time'], TIME_FORMAT)
                 remote_tstamp = float(payload['entry'].split('\n')[0].replace('#', ''))
                 remote_tstamp_str = str(remote_tstamp)
                 
@@ -591,10 +608,35 @@ class MqttSubThread(QThread):
                 payload['entry'].replace(remote_tstamp_str, true_tstamp)
                 
                 if self.stream_enable:
-                    #save to stream file
-                    pass
+                    if not os.path.exists(STREAM_FILE):
+                        if not os.path.exists(STREAM_DIR):
+                            os.makedirs(STREAM_DIR)
+                        init_stream_log()
+                    
+                    with open(STREAM_FILE, 'a') as log:
+                        log.write(payload['entry'])
                 
-                #save/create to indv file w/ generic header
+                if payload['player'] not in self.remote_players.keys():
+                    loc_time = dt.datetime.now()
+                    title = TITLE_FORMAT.format(timestamp=loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=payload['player'])
+                    title = os.path.join(REMOTE_DIR, title)
+                    
+                    self.remote_players[payload['player']] = {'logger': None}
+                    self.remote_players[payload['player']]['logger'] = acmi.ACMI()
+                    self.remote_players[payload['player']]['logger'].create(title)
+                    self.remote_players[payload['player']]['log_path'] = title
+                    self.remote_players[payload['player']]['obj_id']   = gen_id()
+                    
+                    while not self.remote_players[payload['player']]['obj_id'] in self.ids_in_use:
+                        self.remote_players[payload['player']]['obj_id'] = gen_id()
+                    
+                    self.ids_in_use.append(self.remote_players[payload['player']]['obj_id'])
+                    
+                try:
+                    with open(self.remote_players[payload['player']]['log_path'], 'a') as log:
+                        log.write(payload['entry'])
+                except FileNotFoundError:
+                    print('ERROR: Could not find remote user log file')
                 
         except:
             import traceback
