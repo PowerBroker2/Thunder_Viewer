@@ -25,6 +25,10 @@
   <property name="windowTitle">
    <string>Thunder Viewer</string>
   </property>
+  <property name="windowIcon">
+   <iconset>
+    <normaloff>logo.png</normaloff>logo.png</iconset>
+  </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QLineEdit" name="mqtt_id">
     <property name="geometry">
@@ -61,6 +65,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Begin recording and, if selected, streaming telemetry</string>
+    </property>
     <property name="text">
      <string>Record</string>
     </property>
@@ -73,6 +80,9 @@
       <width>201</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Stop recording and, if selected, streaming telemetry</string>
     </property>
     <property name="text">
      <string>Stop</string>
@@ -100,6 +110,9 @@
       <height>17</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Check box to exchange telemetry with remote players &quot;real-time&quot; (i.e. War Thunder Squadron mates)</string>
+    </property>
     <property name="text">
      <string>Remote Session Enabled</string>
     </property>
@@ -112,6 +125,9 @@
       <width>101</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Specify the full path to the directory where all your personal ACMI files will be saved to</string>
     </property>
     <property name="text">
      <string>ACMI Directory:</string>
@@ -139,6 +155,9 @@
       <height>20</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Check box to stream live telemetry to Tacview</string>
+    </property>
     <property name="text">
      <string>Tacview Streaming Enabled</string>
     </property>
@@ -151,6 +170,9 @@
       <width>421</width>
       <height>31</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Launches Tacview as specified in &quot;Tacview Install&quot; field at the top of the GUI</string>
     </property>
     <property name="text">
      <string>Launch TacView for Live Telemetry</string>
@@ -165,6 +187,9 @@
       <height>23</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Specify the full path to Tacview.exe</string>
+    </property>
     <property name="text">
      <string>Tacview Install:</string>
     </property>
@@ -177,6 +202,9 @@
       <width>201</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>localhost port number to connect to Tacview live stream</string>
     </property>
     <property name="maximum">
      <number>9999</number>
@@ -223,6 +251,9 @@
       <height>20</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Check box to stream live telemetry data to a USB device (i.e. Arduino)</string>
+    </property>
     <property name="text">
      <string>USB Streaming Enabled</string>
     </property>
@@ -249,6 +280,9 @@
       <height>22</height>
      </rect>
     </property>
+    <property name="toolTip">
+     <string>Available USB device COM ports</string>
+    </property>
    </widget>
    <widget class="QPushButton" name="port_refresh">
     <property name="geometry">
@@ -258,6 +292,9 @@
       <width>201</width>
       <height>23</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Refresh list of available USB device COM ports</string>
     </property>
     <property name="text">
      <string>Refresh Port List</string>
@@ -271,6 +308,9 @@
       <width>201</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>USB device baud rate (bps)</string>
     </property>
     <property name="currentText">
      <string>115200</string>
@@ -442,6 +482,9 @@
       <width>201</width>
       <height>22</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Specify team name (sets the object color in Tacview)</string>
     </property>
     <item>
      <property name="text">

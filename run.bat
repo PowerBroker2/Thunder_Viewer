@@ -1,2 +1,2 @@
-python Flight_Viewer_with_GUI.py
+python Thunder_Viewer.py
 PAUSE
