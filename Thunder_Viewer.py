@@ -682,7 +682,10 @@ def garbage_collection():
     TODO
     '''
     
-    init_stream_log()
+    try:
+        init_stream_log()
+    except FileNotFoundError:
+        pass
 
 
 if __name__ == "__main__":
