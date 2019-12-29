@@ -5,7 +5,11 @@
 # Description:
 Open source Python GUI to stream and log War Thunder match data "real-time"
 
-This program uses vehicle telemetry data **publicly provided by War Thunder [via a localhost server](https://forum.warthunder.com/index.php?/topic/53412-dynamic-battle-map-tactical-map-on-separate-device-great-new-feature/&ct=1577653391)** to create [ACMI log files](https://www.tacview.net/documentation/acmi/en/), stream telemetry to the application [Tacview](https://www.tacview.net/product/en/), simultaneously stream/download telemetry to/from remote allied players (i.e. War Thunder squadron mates) for a sort of "AWACS view" of the match, and/or stream telemetry to a USB IoT device (i.e. [an Arduino](https://www.arduino.cc/en/Guide/Introduction))
+This program uses vehicle telemetry data **publicly provided by War Thunder [via a localhost server](https://forum.warthunder.com/index.php?/topic/53412-dynamic-battle-map-tactical-map-on-separate-device-great-new-feature/&ct=1577653391)** to do the following:
+- Create [ACMI log files](https://www.tacview.net/documentation/acmi/en/)
+- Stream telemetry to the application [Tacview](https://www.tacview.net/product/en/), simultaneously stream/download telemetry to/from remote allied players (i.e. War Thunder squadron mates)
+    - Provides a real-time "AWACS view" of the War Thunder match
+- Stream telemetry to a USB IoT device (i.e. [an Arduino](https://www.arduino.cc/en/Guide/Introduction))
 
 # Functional Diagram:
 <p align="center">
