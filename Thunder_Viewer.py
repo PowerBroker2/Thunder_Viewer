@@ -341,6 +341,10 @@ class AppWindow(QMainWindow):
         self.ui.mqtt_id.setEnabled(enable)
         self.ui.usb_ports.setEnabled(enable)
         self.ui.live_usb.setEnabled(enable)
+        self.ui.port_refresh.setEnabled(enable)
+        self.ui.usb_baud.setEnabled(enable)
+        self.ui.usb_fields.setEnabled(enable)
+        self.ui.team.setEnabled(enable)
 
 
 class RecordThread(QThread):
