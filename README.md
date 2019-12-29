@@ -11,9 +11,9 @@ Open source Python GUI to stream and log War Thunder match data "real-time".
 </p>
 
 # How to Install:
-1.) Download and install Anaconda3 from https://www.anaconda.com/distribution/
-2.) Download Thunder Viewer from https://github.com/PowerBroker2/Thunder_Viewer (clone or download/extract zip file)
-3.) Run "setup.bat"
+1. Download and install Anaconda3 from https://www.anaconda.com/distribution/
+2. Download Thunder Viewer from https://github.com/PowerBroker2/Thunder_Viewer (clone or download/extract zip file)
+3. Run "setup.bat"
 
 # How to Run:
-1.) Double click "run.bat" or run "Thunder_Viewer.py" via Python
+1. Double click "run.bat" or run "Thunder_Viewer.py" via Python
