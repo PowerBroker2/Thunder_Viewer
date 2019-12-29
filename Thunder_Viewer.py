@@ -345,6 +345,7 @@ class AppWindow(QMainWindow):
         self.ui.usb_baud.setEnabled(enable)
         self.ui.usb_fields.setEnabled(enable)
         self.ui.team.setEnabled(enable)
+        self.ui.sample_rate.setEnabled(enable)
 
 
 class RecordThread(QThread):
@@ -364,6 +365,7 @@ class RecordThread(QThread):
         self.stream_enable = parent.ui.live_telem.isChecked()
         self.usb_enable    = parent.ui.live_usb.isChecked()
         self.team          = not parent.ui.team.currentIndex()
+        self.sample_rate   = parent.ui.sample_rate.value()
         
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -556,6 +558,8 @@ class RecordThread(QThread):
         self.logger.create(self.title)
         self.header_inserted = False
         self.meta_inserted   = False
+        sample_baseline      = dt.datetime.now()
+        now                  = dt.datetime.now()
         
         self.init_mqtt_struct()
         
@@ -563,7 +567,12 @@ class RecordThread(QThread):
             if not os.path.exists(REF_FILE):
                 self.init_mqtt_struct()
             
-            self.process_player_data()
+            now = dt.datetime.now()
+            time_dif = (now - sample_baseline).total_seconds()
+            
+            if time_dif >= self.sample_rate:
+                sample_baseline += dt.timedelta(seconds=time_dif)
+                self.process_player_data()
 
 
 class StreamThread(QThread):
@@ -748,7 +757,7 @@ def garbage_collection():
         pass
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     try:
         main()
     except (SystemExit, KeyboardInterrupt, requests.exceptions.ConnectionError):
