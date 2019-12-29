@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>735</height>
+    <height>930</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>500</width>
-    <height>735</height>
+    <height>930</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>500</width>
-    <height>735</height>
+    <height>930</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -47,7 +47,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>650</y>
+      <y>850</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -60,7 +60,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>630</y>
+      <y>830</y>
       <width>201</width>
       <height>23</height>
      </rect>
@@ -76,7 +76,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>660</y>
+      <y>860</y>
       <width>201</width>
       <height>23</height>
      </rect>
@@ -166,7 +166,7 @@
     <property name="geometry">
      <rect>
       <x>40</x>
-      <y>510</y>
+      <y>710</y>
       <width>421</width>
       <height>31</height>
      </rect>
@@ -452,7 +452,7 @@
     <property name="geometry">
      <rect>
       <x>20</x>
-      <y>470</y>
+      <y>670</y>
       <width>461</width>
       <height>20</height>
      </rect>
@@ -478,7 +478,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>580</y>
+      <y>780</y>
       <width>201</width>
       <height>22</height>
      </rect>
@@ -501,13 +501,90 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>560</y>
+      <y>760</y>
       <width>201</width>
       <height>16</height>
      </rect>
     </property>
     <property name="text">
      <string>Team</string>
+    </property>
+   </widget>
+   <widget class="QListWidget" name="usb_fields">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>490</y>
+      <width>201</width>
+      <height>161</height>
+     </rect>
+    </property>
+    <property name="alternatingRowColors">
+     <bool>true</bool>
+    </property>
+    <property name="selectionMode">
+     <enum>QAbstractItemView::MultiSelection</enum>
+    </property>
+    <property name="sortingEnabled">
+     <bool>false</bool>
+    </property>
+    <item>
+     <property name="text">
+      <string>Roll Angle</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Pitch Angle</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Heading</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Altitude (meters)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Airspeed (km/h)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Latitude (dd)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Longitude (dd)</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Flap State</string>
+     </property>
+    </item>
+    <item>
+     <property name="text">
+      <string>Gear State</string>
+     </property>
+    </item>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>260</x>
+      <y>470</y>
+      <width>201</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Values to stream</string>
     </property>
    </widget>
   </widget>

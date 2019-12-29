@@ -376,8 +376,9 @@ class RecordThread(QThread):
                 self.mqtt_enable = False
         
         if self.usb_enable:
-            self.usb_port = parent.ui.usb_ports.currentText()
-            self.usb_baud = int(parent.ui.usb_baud.currentText())
+            self.usb_port   = parent.ui.usb_ports.currentText()
+            self.usb_baud   = int(parent.ui.usb_baud.currentText())
+            self.usb_fields = [item.text() for item in parent.ui.usb_fields.selectedItems()]
             
             if not self.usb_port:
                 self.usb_enable = False
@@ -408,31 +409,86 @@ class RecordThread(QThread):
         
         # mulitply float values by a constant so as to preserve as much
         # of the value's precision as possible
-        pitch = int(self.telem.basic_telemetry['pitch'] * 350)
-        roll  = int(self.telem.basic_telemetry['roll']  * 350)
-        hdg   = int(self.telem.basic_telemetry['heading'])
-        alt   = int(self.telem.basic_telemetry['altitude'])
-        lat   = int(self.telem.basic_telemetry['lat'] * 5000)
-        lon   = int(self.telem.basic_telemetry['lon'] * 5000)
         
-        self.transfer.txBuff[0]  = msb(pitch)
-        self.transfer.txBuff[1]  = lsb(pitch)
-        self.transfer.txBuff[2]  = msb(roll)
-        self.transfer.txBuff[3]  = lsb(roll)
-        self.transfer.txBuff[4]  = msb(hdg)
-        self.transfer.txBuff[5]  = lsb(hdg)
-        self.transfer.txBuff[6]  = msb(alt)
-        self.transfer.txBuff[7]  = lsb(alt)
-        self.transfer.txBuff[8]  = msb(lat)
-        self.transfer.txBuff[9]  = byte_val(lat, 2)
-        self.transfer.txBuff[10] = byte_val(lat, 1)
-        self.transfer.txBuff[11] = lsb(lat)
-        self.transfer.txBuff[12] = msb(lon)
-        self.transfer.txBuff[13] = byte_val(lon, 2)
-        self.transfer.txBuff[14] = byte_val(lon, 1)
-        self.transfer.txBuff[15] = lsb(lon)
+        send_len = 0
         
-        self.transfer.send(16)
+        if 'Roll Angle' in self.usb_fields:
+            roll = int(self.telem.basic_telemetry['roll']  * 350)
+            
+            self.transfer.txBuff[send_len] = msb(roll)
+            send_len += 1
+            self.transfer.txBuff[send_len] = lsb(roll)
+            send_len += 1
+        
+        if 'Pitch Angle' in self.usb_fields:
+            pitch = int(self.telem.basic_telemetry['pitch'] * 350)
+            
+            self.transfer.txBuff[send_len] = msb(pitch)
+            send_len += 1
+            self.transfer.txBuff[send_len] = lsb(pitch)
+            send_len += 1
+        
+        if 'Heading' in self.usb_fields:
+            hdg = int(self.telem.basic_telemetry['heading'])
+            
+            self.transfer.txBuff[send_len] = msb(hdg)
+            send_len += 1
+            self.transfer.txBuff[send_len] = lsb(hdg)
+            send_len += 1
+        
+        if 'Altitude (meters)' in self.usb_fields:
+            alt = int(self.telem.basic_telemetry['altitude'])
+            
+            self.transfer.txBuff[send_len] = msb(alt)
+            send_len += 1
+            self.transfer.txBuff[send_len] = lsb(alt)
+            send_len += 1
+        
+        if 'Airspeed (km/h)' in self.usb_fields:
+            ias = int(self.telem.basic_telemetry['IAS'])
+            
+            self.transfer.txBuff[send_len] = msb(ias)
+            send_len += 1
+            self.transfer.txBuff[send_len] = lsb(ias)
+            send_len += 1
+        
+        if 'Latitude (dd)' in self.usb_fields:
+            lat = int(self.telem.basic_telemetry['lat'] * 5000)
+            
+            self.transfer.txBuff[send_len] = msb(lat)
+            send_len += 1
+            self.transfer.txBuff[send_len] = byte_val(lat, 2)
+            send_len += 1
+            self.transfer.txBuff[send_len] = byte_val(lat, 1)
+            send_len += 1
+            self.transfer.txBuff[send_len] = lsb(lat)
+            send_len += 1
+        
+        if 'Longitude (dd)' in self.usb_fields:
+            lon = int(self.telem.basic_telemetry['lon'] * 5000)
+            
+            self.transfer.txBuff[send_len] = msb(lon)
+            send_len += 1
+            self.transfer.txBuff[send_len] = byte_val(lon, 2)
+            send_len += 1
+            self.transfer.txBuff[send_len] = byte_val(lon, 1)
+            send_len += 1
+            self.transfer.txBuff[send_len] = lsb(lon)
+            send_len += 1
+        
+        if 'Flap State' in self.usb_fields:
+            flap_state = int(self.telem.basic_telemetry['flapState'] / 100)
+            
+            self.transfer.txBuff[send_len] = flap_state
+            send_len += 1
+        
+        if 'Gear State' in self.usb_fields:
+            gear_state = int(self.telem.basic_telemetry['gearState'] / 100)
+            
+            self.transfer.txBuff[send_len] = gear_state
+            send_len += 1
+        
+        self.transfer.send(send_len)
     
     def process_player_data(self):
         '''
