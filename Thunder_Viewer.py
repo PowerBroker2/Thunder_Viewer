@@ -12,7 +12,6 @@ from socketserver import TCPServer, BaseRequestHandler
 from PyQt5.QtCore import QThread, QProcess
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from pySerialTransfer import pySerialTransfer as transfer
-from pySerialTransfer.pySerialTransfer import msb, lsb, byte_val
 from WarThunder import general, telemetry, acmi
 from WarThunder.telemetry import combine_dicts
 from gui import Ui_ThunderViewer
