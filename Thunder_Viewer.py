@@ -2,6 +2,7 @@ import os
 import sys
 import json
 import arrow
+import struct
 import requests
 import datetime as dt
 import paho.mqtt.client as mqtt
@@ -256,6 +257,11 @@ class AppWindow(QMainWindow):
         if not self.ui.recording.isChecked():
             self.disable_inputs()
             
+            if self.ui.live_usb.isChecked():
+                self.usb_port   = self.ui.usb_ports.currentText()
+                self.usb_baud   = int(self.ui.usb_baud.currentText())
+                self.transfer   = transfer.SerialTransfer(self.usb_port, self.usb_baud)
+            
             if self.ui.mqtt.isChecked():
                 self.mqtt_sub_th = MqttSubThread(self)
                 self.mqtt_sub_th.start()
@@ -276,6 +282,9 @@ class AppWindow(QMainWindow):
         '''
         
         self.enable_inputs()
+        
+        if self.ui.live_usb.isChecked():
+            self.transfer.close()
         
         try:
             if self.rec_th.isRunning():
@@ -384,14 +393,13 @@ class RecordThread(QThread):
                 self.mqtt_enable = False
         
         if self.usb_enable:
-            self.usb_port   = parent.ui.usb_ports.currentText()
-            self.usb_baud   = int(parent.ui.usb_baud.currentText())
+            self.usb_port   = parent.usb_port
             self.usb_fields = [item.text() for item in parent.ui.usb_fields.selectedItems()]
             
             if not self.usb_port:
                 self.usb_enable = False
             else:
-                self.transfer = transfer.SerialTransfer(self.usb_port, self.usb_baud)
+                self.transfer = parent.transfer
     
     def init_mqtt_struct(self):
         '''
@@ -408,6 +416,43 @@ class RecordThread(QThread):
             f.write('\n')
             f.write(self.logger.obj_ids['0'])
     
+    def stuff_float(self, val, start_pos):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        val_bytes = struct.pack('f', val)
+        
+        self.transfer.txBuff[start_pos] = val_bytes[0]
+        start_pos += 1
+        self.transfer.txBuff[start_pos] = val_bytes[1]
+        start_pos += 1
+        self.transfer.txBuff[start_pos] = val_bytes[2]
+        start_pos += 1
+        self.transfer.txBuff[start_pos] = val_bytes[3]
+        start_pos += 1
+        
+        return start_pos
+    
+    def stuff_int(self, val, start_pos):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        val_bytes = (val).to_bytes(2, byteorder='little')
+        
+        self.transfer.txBuff[start_pos] = val_bytes[0]
+        start_pos += 1
+        self.transfer.txBuff[start_pos] = val_bytes[1]
+        start_pos += 1
+        
+        return start_pos
+        
+    
     def send_usb_telem(self):
         '''
         Description:
@@ -415,74 +460,35 @@ class RecordThread(QThread):
         TODO
         '''
         
-        # mulitply float values by a constant so as to preserve as much
-        # of the value's precision as possible
-        
         send_len = 0
         
         if 'Roll Angle' in self.usb_fields:
-            roll = int(self.telem.basic_telemetry['roll']  * 350)
-            
-            self.transfer.txBuff[send_len] = msb(roll)
-            send_len += 1
-            self.transfer.txBuff[send_len] = lsb(roll)
-            send_len += 1
+            send_len = self.stuff_float(self.telem.basic_telemetry['roll'],
+                                        send_len)
         
         if 'Pitch Angle' in self.usb_fields:
-            pitch = int(self.telem.basic_telemetry['pitch'] * 350)
-            
-            self.transfer.txBuff[send_len] = msb(pitch)
-            send_len += 1
-            self.transfer.txBuff[send_len] = lsb(pitch)
-            send_len += 1
+            send_len = self.stuff_float(self.telem.basic_telemetry['pitch'],
+                                        send_len)
         
         if 'Heading' in self.usb_fields:
-            hdg = int(self.telem.basic_telemetry['heading'])
-            
-            self.transfer.txBuff[send_len] = msb(hdg)
-            send_len += 1
-            self.transfer.txBuff[send_len] = lsb(hdg)
-            send_len += 1
+            send_len = self.stuff_int(int(self.telem.basic_telemetry['heading']),
+                                      send_len)
         
         if 'Altitude (meters)' in self.usb_fields:
-            alt = int(self.telem.basic_telemetry['altitude'])
-            
-            self.transfer.txBuff[send_len] = msb(alt)
-            send_len += 1
-            self.transfer.txBuff[send_len] = lsb(alt)
-            send_len += 1
+            send_len = self.stuff_int(int(self.telem.basic_telemetry['altitude']),
+                                      send_len)
         
         if 'Airspeed (km/h)' in self.usb_fields:
-            ias = int(self.telem.basic_telemetry['IAS'])
-            
-            self.transfer.txBuff[send_len] = msb(ias)
-            send_len += 1
-            self.transfer.txBuff[send_len] = lsb(ias)
-            send_len += 1
+            send_len = self.stuff_int(int(self.telem.basic_telemetry['IAS']),
+                                      send_len)
         
         if 'Latitude (dd)' in self.usb_fields:
-            lat = int(self.telem.basic_telemetry['lat'] * 5000)
-            
-            self.transfer.txBuff[send_len] = msb(lat)
-            send_len += 1
-            self.transfer.txBuff[send_len] = byte_val(lat, 2)
-            send_len += 1
-            self.transfer.txBuff[send_len] = byte_val(lat, 1)
-            send_len += 1
-            self.transfer.txBuff[send_len] = lsb(lat)
-            send_len += 1
+            send_len = self.stuff_float(self.telem.basic_telemetry['lat'],
+                                        send_len)
         
         if 'Longitude (dd)' in self.usb_fields:
-            lon = int(self.telem.basic_telemetry['lon'] * 5000)
-            
-            self.transfer.txBuff[send_len] = msb(lon)
-            send_len += 1
-            self.transfer.txBuff[send_len] = byte_val(lon, 2)
-            send_len += 1
-            self.transfer.txBuff[send_len] = byte_val(lon, 1)
-            send_len += 1
-            self.transfer.txBuff[send_len] = lsb(lon)
-            send_len += 1
+            send_len = self.stuff_float(self.telem.basic_telemetry['lon'],
+                                        send_len)
         
         if 'Flap State' in self.usb_fields:
             flap_state = int(self.telem.basic_telemetry['flapState'] / 100)
@@ -543,6 +549,8 @@ class RecordThread(QThread):
                 try:
                     self.send_usb_telem()
                 except ValueError:
+                    import traceback
+                    traceback.print_exc()
                     print('ERROR: Could not communicate with USB device - Ending USB streaming')
                     self.usb_enable = False
         
