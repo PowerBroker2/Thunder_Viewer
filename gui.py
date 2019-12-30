@@ -161,7 +161,7 @@ class Ui_ThunderViewer(object):
         self.sample_rate.setGeometry(QtCore.QRect(260, 800, 201, 22))
         self.sample_rate.setMinimum(2)
         self.sample_rate.setMaximum(10)
-        self.sample_rate.setProperty("value", 10)
+        self.sample_rate.setProperty("value", 6)
         self.sample_rate.setObjectName("sample_rate")
         self.label_8 = QtWidgets.QLabel(self.centralwidget)
         self.label_8.setGeometry(QtCore.QRect(260, 780, 201, 20))

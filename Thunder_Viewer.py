@@ -331,8 +331,6 @@ class AppWindow(QMainWindow):
         TODO
         '''
         
-        self.ui.tacview_path.setEnabled(enable)
-        self.ui.tacview_select.setEnabled(enable)
         self.ui.acmi_path.setEnabled(enable)
         self.ui.acmi_select.setEnabled(enable)
         self.ui.live_telem.setEnabled(enable)
@@ -379,6 +377,10 @@ class RecordThread(QThread):
             
             if self.mqttc.connect(BROKER_HOST):
                 print('ERROR: Could not connect to MQTT broker {}'.format(BROKER_HOST))
+                self.mqtt_enable = False
+            
+            if not self.mqtt_id:
+                print('ERROR: No remote session ID provided')
                 self.mqtt_enable = False
         
         if self.usb_enable:
