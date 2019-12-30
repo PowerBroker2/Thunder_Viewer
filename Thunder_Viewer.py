@@ -365,7 +365,7 @@ class RecordThread(QThread):
         self.stream_enable = parent.ui.live_telem.isChecked()
         self.usb_enable    = parent.ui.live_usb.isChecked()
         self.team          = not parent.ui.team.currentIndex()
-        self.sample_rate   = parent.ui.sample_rate.value()
+        self.sample_period = 1.0 / parent.ui.sample_rate.value()
         
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -570,7 +570,7 @@ class RecordThread(QThread):
             now = dt.datetime.now()
             time_dif = (now - sample_baseline).total_seconds()
             
-            if time_dif >= self.sample_rate:
+            if time_dif >= self.sample_period:
                 sample_baseline += dt.timedelta(seconds=time_dif)
                 self.process_player_data()
 
