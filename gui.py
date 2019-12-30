@@ -255,7 +255,7 @@ class Ui_ThunderViewer(object):
         item = self.usb_fields.item(8)
         item.setText(_translate("ThunderViewer", "Gear State"))
         self.usb_fields.setSortingEnabled(__sortingEnabled)
-        self.label_7.setText(_translate("ThunderViewer", "Values to stream"))
+        self.label_7.setText(_translate("ThunderViewer", "Select values to stream"))
         self.sample_rate.setToolTip(_translate("ThunderViewer", "localhost port number to connect to Tacview live stream"))
         self.label_8.setText(_translate("ThunderViewer", "Sample Rate (Hz)"))
 

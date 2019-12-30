@@ -584,7 +584,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>Values to stream</string>
+     <string>Select values to stream</string>
     </property>
    </widget>
    <widget class="QSpinBox" name="sample_rate">
