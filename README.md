@@ -24,5 +24,8 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 # How to Run:
 1. Double click "run.bat" or run "Thunder_Viewer.py" via Python
 
+# Graphical User Interface:
+![gui](https://user-images.githubusercontent.com/20977405/71610000-42be2f80-2b5b-11ea-8781-61b8a3f04bfc.PNG)
+
 # FAQ:
 - TODO
