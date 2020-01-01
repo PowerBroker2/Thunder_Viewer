@@ -675,7 +675,7 @@ class MqttSubThread(QThread):
             
             if not payload['player'] == USERNAME:
                 with open(REF_FILE, 'r') as f:
-                    user_tref   = arrow.arrow.datetime.strptime(f.readline(), TIME_FORMAT)
+                    user_tref   = arrow.arrow.datetime.strptime(f.readline().replace('\n', ''), TIME_FORMAT)
                     user_obj_id = f.readline()
                     
                     if user_obj_id not in self.ids_in_use:
@@ -709,11 +709,11 @@ class MqttSubThread(QThread):
                     self.remote_players[payload['player']]['log_path'] = title
                     self.remote_players[payload['player']]['obj_id']   = gen_id()
                     
-                    while not self.remote_players[payload['player']]['obj_id'] in self.ids_in_use:
+                    while self.remote_players[payload['player']]['obj_id'] in self.ids_in_use:
                         self.remote_players[payload['player']]['obj_id'] = gen_id()
                     
                     self.ids_in_use.append(self.remote_players[payload['player']]['obj_id'])
-                    
+
                 try:
                     with open(self.remote_players[payload['player']]['log_path'], 'a') as log:
                         log.write(payload['entry'])
