@@ -1,7 +1,6 @@
 import os
 import sys
 import json
-import arrow
 import struct
 import requests
 import datetime as dt
@@ -182,7 +181,9 @@ def gen_id():
     '''
     Description:
     ------------
-    TODO
+    Find a valid Tacview object hex ID
+    
+    :return: str - new object hex ID
     '''
     
     return str(hex(randint(1, acmi.MAX_NUM_OBJS + 2))[2:]).upper()
@@ -206,6 +207,7 @@ class AppWindow(QMainWindow):
         self.update_port_list()
         
         self.ui.acmi_path.setText(LOGS_DIR)
+        self.enable_inputs()
     
     def connect_signals(self):
         '''
@@ -235,7 +237,7 @@ class AppWindow(QMainWindow):
         '''
         Description:
         ------------
-        TODO
+        Launch the application "Tacview" at the path as specified in the GUI
         '''
         
         try:
@@ -250,7 +252,7 @@ class AppWindow(QMainWindow):
         '''
         Description:
         ------------
-        TODO
+        Begin recording and streaming (if any streaming options are enabled)
         '''
         
         if not self.ui.recording.isChecked():
@@ -277,7 +279,8 @@ class AppWindow(QMainWindow):
         '''
         Description:
         ------------
-        TODO
+        Stops recording and streaming (if any streaming options are enabled)
+        by closing all currently running threads
         '''
         
         self.enable_inputs()
@@ -309,7 +312,7 @@ class AppWindow(QMainWindow):
         '''
         Description:
         ------------
-        TODO
+        Control radio button to display the recording status
         '''
         
         self.ui.recording.setDisabled(True)
@@ -319,7 +322,9 @@ class AppWindow(QMainWindow):
         '''
         Description:
         ------------
-        TODO
+        Find the names of all currently available serial ports
+        
+        :return: list - names of all available ports
         '''
         
         ports = transfer.open_ports()
@@ -336,7 +341,7 @@ class AppWindow(QMainWindow):
         '''
         Description:
         ------------
-        TODO
+        Enables/disables GUI widgets
         '''
         
         self.ui.acmi_path.setEnabled(enable)
@@ -352,13 +357,15 @@ class AppWindow(QMainWindow):
         self.ui.usb_fields.setEnabled(enable)
         self.ui.team.setEnabled(enable)
         self.ui.sample_rate.setEnabled(enable)
+        self.ui.record.setEnabled(enable)
+        self.ui.stop.setEnabled(not enable)
 
 
 class RecordThread(QThread):
     '''
     Description:
     ------------
-    TODO
+    Thread class used to record and stream personal match data
     '''
     
     def __init__(self, parent=None):
@@ -404,14 +411,14 @@ class RecordThread(QThread):
         '''
         Description:
         ------------
-        TODO
+        Initialize the file structure needed for propper MQTT processing
         '''
         
         if not os.path.exists(REMOTE_DIR):
             os.makedirs(REMOTE_DIR)
             
         with open(REF_FILE, 'w') as f:
-            f.write(str(self.logger.reference_time).split('+')[0])
+            f.write(self.logger.reference_time.isoformat())
             f.write('\n')
             f.write(self.logger.obj_ids['0'])
     
@@ -419,7 +426,15 @@ class RecordThread(QThread):
         '''
         Description:
         ------------
-        TODO
+        Insert a 32-bit floating point value into the (pySerialTransfer) TX
+        buffer starting at the specified index
+        
+        :param val:       float - value to be inserted into TX buffer
+        :param start_pos: int   - index of TX buffer where the first byte of
+                                  the float is to be stored in
+        
+        :return start_pos: int - index of the last byte of the float in the TX
+                                 buffer + 1
         '''
         
         val_bytes = struct.pack('f', val)
@@ -439,7 +454,15 @@ class RecordThread(QThread):
         '''
         Description:
         ------------
-        TODO
+        Insert a 16-bit integer value into the (pySerialTransfer) TX buffer
+        starting at the specified index
+        
+        :param val:       int - value to be inserted into TX buffer
+        :param start_pos: int - index of TX buffer where the first byte of
+                                the int is to be stored in
+        
+        :return start_pos: int - index of the last byte of the int in the TX
+                                 buffer + 1
         '''
         
         val_bytes = (val).to_bytes(2, byteorder='little')
@@ -456,7 +479,7 @@ class RecordThread(QThread):
         '''
         Description:
         ------------
-        TODO
+        Send specified telemetry info to USB device via pySerialTransfer
         '''
         
         send_len = 0
@@ -490,13 +513,13 @@ class RecordThread(QThread):
                                         send_len)
         
         if 'Flap State' in self.usb_fields:
-            flap_state = int(self.telem.basic_telemetry['flapState'] / 100)
+            flap_state = int(self.telem.basic_telemetry['flapState'] / 100) # convert from % to bool
             
             self.transfer.txBuff[send_len] = flap_state
             send_len += 1
         
         if 'Gear State' in self.usb_fields:
-            gear_state = int(self.telem.basic_telemetry['gearState'] / 100)
+            gear_state = int(self.telem.basic_telemetry['gearState'] / 100) # convert from % to bool
             
             self.transfer.txBuff[send_len] = gear_state
             send_len += 1
@@ -507,7 +530,7 @@ class RecordThread(QThread):
         '''
         Description:
         ------------
-        TODO
+        Record/stream a single sample of user War Thunder telemetry data
         '''
         
         if self.telem.get_telemetry():
@@ -531,9 +554,9 @@ class RecordThread(QThread):
             
             if self.mqtt_enable:
                 mqtt_payload = json.dumps({'player':   USERNAME,
-                                           'ref_time': str(self.logger.reference_time).split('+')[0],
+                                           'ref_time': self.logger.reference_time.isoformat(),
                                            'entry':    log_line})
-                self.mqttc.publish(self.mqtt_id, mqtt_payload,)
+                self.mqttc.publish(self.mqtt_id, mqtt_payload)
             
             if self.stream_enable:
                 if not os.path.exists(STREAM_FILE):
@@ -557,7 +580,7 @@ class RecordThread(QThread):
         '''
         Description:
         ------------
-        TODO
+        Main thread to record/stream user data
         '''
         
         self.loc_time = dt.datetime.now()
@@ -588,7 +611,8 @@ class StreamThread(QThread):
     '''
     Description:
     ------------
-    TODO
+    Thread class used to stream personal and remote player match data via a
+    localhost TCP connection with Tacview
     '''
     
     def __init__(self, parent=None):
@@ -607,7 +631,8 @@ class StreamHandler(BaseRequestHandler):
     '''
     Description:
     ------------
-    TODO
+    Stream personal and remote player match data via a localhost TCP connection
+    with Tacview
     '''
     
     def handle(self):
@@ -647,7 +672,7 @@ class MqttSubThread(QThread):
     '''
     Description:
     ------------
-    TODO
+    Thread class used to download remote user's data via MQTT
     '''
     
     def __init__(self, parent=None):
@@ -667,28 +692,44 @@ class MqttSubThread(QThread):
             self.mqtt_enable = False
     
     def on_connect(self, client, userdata, flags, rc):
+        '''
+        Description:
+        ------------
+        Callback function - subscribe to all MQTT messages where the topic is
+        the remote session ID specified in the GUI
+        '''
+        
         client.subscribe(topic=self.mqtt_id)
     
     def on_message(self, client, userdata, message):
+        '''
+        Description:
+        ------------
+        Callback function - process remote player's data (record/stream)
+        '''
+        
         try:
             payload = json.loads(message.payload)
             
+            # only process remote player's data
             if not payload['player'] == USERNAME:
                 with open(REF_FILE, 'r') as f:
-                    user_tref   = arrow.arrow.datetime.strptime(f.readline().replace('\n', ''), TIME_FORMAT)
+                    user_tref   = dt.datetime.strptime(f.readline().replace('\n', ''), TIME_FORMAT)
                     user_obj_id = f.readline()
                     
-                    if user_obj_id not in self.ids_in_use:
-                        self.ids_in_use.append(user_obj_id)
+                if user_obj_id not in self.ids_in_use:
+                    self.ids_in_use.append(user_obj_id)
                 
-                remote_tref   = arrow.arrow.datetime.strptime(payload['ref_time'], TIME_FORMAT)
+                remote_tref   = dt.datetime.strptime(payload['ref_time'], TIME_FORMAT)
                 remote_tstamp = float(payload['entry'].split('\n')[0].replace('#', ''))
                 remote_tstamp_str = str(remote_tstamp)
                 
-                sample_dt   = remote_tref + arrow.arrow.timedelta(seconds=remote_tstamp)
+                # adjust remote user's timestamp to local user's reference time
+                sample_dt   = remote_tref + dt.timedelta(seconds=remote_tstamp)
                 true_tstamp = '{:0.2f}'.format((sample_dt - user_tref).total_seconds())
                 payload['entry'].replace(remote_tstamp_str, true_tstamp)
                 
+                # stream remote session data to Tacview if enabled
                 if self.stream_enable:
                     if not os.path.exists(STREAM_FILE):
                         if not os.path.exists(STREAM_DIR):
@@ -698,6 +739,7 @@ class MqttSubThread(QThread):
                     with open(STREAM_FILE, 'a') as log:
                         log.write(payload['entry'])
                 
+                # process players new to the remote session
                 if payload['player'] not in self.remote_players.keys():
                     loc_time = dt.datetime.now()
                     title = TITLE_FORMAT.format(timestamp=loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=payload['player'])
@@ -709,12 +751,14 @@ class MqttSubThread(QThread):
                     self.remote_players[payload['player']]['log_path'] = title
                     self.remote_players[payload['player']]['obj_id']   = gen_id()
                     
+                    # make sure new object ID is unique accross all objects
                     while self.remote_players[payload['player']]['obj_id'] in self.ids_in_use:
                         self.remote_players[payload['player']]['obj_id'] = gen_id()
                     
                     self.ids_in_use.append(self.remote_players[payload['player']]['obj_id'])
 
                 try:
+                    # log remote player's data in ACMI file
                     with open(self.remote_players[payload['player']]['log_path'], 'a') as log:
                         log.write(payload['entry'])
                 except FileNotFoundError:
@@ -725,6 +769,12 @@ class MqttSubThread(QThread):
             traceback.print_exc()
     
     def run(self):
+        '''
+        Description:
+        ------------
+        Thread used to process all MQTT messages for the remote session
+        '''
+        
         if self.mqtt_enable:
             self.mqttc.loop_forever()
 
@@ -733,11 +783,11 @@ def main():
     '''
     Description:
     ------------
-    TODO
+    Main program to run
     '''
     
     app = QApplication(sys.argv)
-    w = AppWindow()
+    w   = AppWindow()
     w.show()
     sys.exit(app.exec_())
 
@@ -745,19 +795,22 @@ def init_stream_log():
     '''
     Description:
     ------------
-    TODO
+    Create an ACMI log file with a generic header. This header will then be
+    populated with telemetry sample entries that will then be streamed to
+    Tacview for live data viewing
     '''
     
     with open(STREAM_FILE, 'w') as log:
         log.write(acmi.header_mandatory.format(filetype='text/acmi/tacview',
                                                acmiver='2.1',
-                                               reftime=str(arrow.utcnow()).split('+')[0]))
+                                               reftime=dt.datetime.utcnow().isoformat()))
 
 def garbage_collection():
     '''
     Description:
     ------------
-    TODO
+    Initialize and clear out stream ACMI file - prevents streaming of old data
+    and prevents log file from balooning in size
     '''
     
     try:
