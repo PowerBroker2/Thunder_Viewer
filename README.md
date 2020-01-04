@@ -18,8 +18,9 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 
 # How to Install:
 1. Download and install Anaconda3 from https://www.anaconda.com/distribution/
-2. Download Thunder Viewer from https://github.com/PowerBroker2/Thunder_Viewer (clone or download/extract zip file)
-3. Run "setup.bat"
+2. [Ensure the path to pip.exe is in your PATH system variable](https://www.youtube.com/watch?v=cm6WDGAzDPM)
+3. Download Thunder Viewer from https://github.com/PowerBroker2/Thunder_Viewer (clone or download/extract zip file)
+4. Run "setup.bat"
 
 # How to Run:
 1. Double click "run.bat" or run "Thunder_Viewer.py" via Python
