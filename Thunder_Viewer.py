@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import shutil
 import struct
 import requests
 import datetime as dt
@@ -11,7 +12,7 @@ from socketserver import TCPServer, BaseRequestHandler
 from PyQt5.QtCore import QThread, QProcess
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from pySerialTransfer import pySerialTransfer as transfer
-from WarThunder import general, telemetry, acmi
+from WarThunder import general, telemetry, acmi, mapinfo
 from WarThunder.telemetry import combine_dicts
 from gui import Ui_ThunderViewer
 
@@ -26,6 +27,10 @@ LOGS_DIR     = os.path.join(APP_DIR, 'logs')
 MQTT_DIR     = os.path.join(APP_DIR, 'mqtt')
 REMOTE_DIR   = os.path.join(MQTT_DIR, 'remote_players')
 REF_FILE     = os.path.join(MQTT_DIR, 'reference.txt')
+TEXTURES_DIR = os.path.join(os.environ['APPDATA'], r'Tacview\Data\Terrain\Textures')
+XML_NAME     = 'CustomTextureList.xml'
+TEXTURE_XML_TEMPLATE  = os.path.join(APP_DIR, XML_NAME)
+TEXTURE_XML  = os.path.join(TEXTURES_DIR, XML_NAME)
 TITLE_FORMAT = '{timestamp}_{user}.acmi'
 ACMI_HEADER  = {'DataSource': '',
                 'DataRecorder': '',
@@ -526,6 +531,73 @@ class RecordThread(QThread):
         
         self.transfer.send(send_len)
     
+    def save_texture_files(self):
+        '''
+        Description:
+        ------------
+        Add current War Thunder match map to Tacview's custom terrain textures.
+        This allows the map to be displayed on Tacview's Globe during replays
+        and streams
+        '''
+        
+        map_dim    = self.telem.map_info.grid_info['size_km']
+        map_name   = self.telem.map_info.grid_info['name']
+        image_name = '{}.jpg'.format(map_name)
+        
+        ULHC_lon = self.telem.map_info.grid_info['ULHC_lon']
+        ULHC_lat = self.telem.map_info.grid_info['ULHC_lat']
+        
+        URHC_lon = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 90)[1]
+        URHC_lat = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 90)[0]
+        
+        LLHC_lon = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 180)[1]
+        LLHC_lat = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 180)[0]
+        
+        LRHC_lon = mapinfo.coord_coord(LLHC_lat, LLHC_lon, map_dim, 90)[1]
+        LRHC_lat = mapinfo.coord_coord(LLHC_lat, LLHC_lon, map_dim, 90)[0]
+        
+        if not image_name in os.listdir(TEXTURES_DIR):
+            with open(TEXTURE_XML_TEMPLATE, 'r') as template:
+                contents = template.read()
+            
+            new_contents = contents.format(filename=image_name,
+                                           LLHC_lon=LLHC_lon,
+                                           LLHC_lat=LLHC_lat,
+                                           LRHC_lon=LRHC_lon,
+                                           LRHC_lat=LRHC_lat,
+                                           URHC_lon=URHC_lon,
+                                           URHC_lat=URHC_lat,
+                                           ULHC_lon=ULHC_lon,
+                                           ULHC_lat=ULHC_lat)
+            
+            if os.path.exists(TEXTURE_XML):
+                with open(TEXTURE_XML, 'r') as text_xml:
+                    current_contents = text_xml.read()
+                
+                if current_contents:
+                    if '\t</CustomTextureList>' in current_contents:
+                        current_contents = current_contents.split('\t</CustomTextureList>')[0] + new_contents.split('<CustomTextureList>')[1]
+                    
+                        with open(TEXTURE_XML, 'w') as outFile:
+                            outFile.write(current_contents)
+                    
+                    else:
+                        with open(TEXTURE_XML, 'w') as outFile:
+                            outFile.write(new_contents)
+                    
+                else:
+                    with open(TEXTURE_XML, 'w') as outFile:
+                        outFile.write(new_contents)
+            
+            else:
+                with open(TEXTURE_XML, 'w') as outFile:
+                    outFile.write(new_contents)
+            
+            src = mapinfo.MAP_PATH
+            dst = os.path.join(TEXTURES_DIR, image_name)
+            
+            shutil.copy(src, dst)
+    
     def process_player_data(self):
         '''
         Description:
@@ -575,6 +647,9 @@ class RecordThread(QThread):
                     traceback.print_exc()
                     print('ERROR: Could not communicate with USB device - Ending USB streaming')
                     self.usb_enable = False
+            
+            if os.path.exists(TEXTURES_DIR):
+                self.save_texture_files()
         
     def run(self):
         '''
