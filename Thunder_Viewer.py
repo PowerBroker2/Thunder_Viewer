@@ -539,64 +539,65 @@ class RecordThread(QThread):
         This allows the map to be displayed on Tacview's Globe during replays
         and streams
         '''
+        map_name = self.telem.map_info.grid_info['name']
         
-        map_dim    = self.telem.map_info.grid_info['size_km']
-        map_name   = self.telem.map_info.grid_info['name']
-        image_name = '{}.jpg'.format(map_name)
-        
-        ULHC_lon = self.telem.map_info.grid_info['ULHC_lon']
-        ULHC_lat = self.telem.map_info.grid_info['ULHC_lat']
-        
-        URHC_lon = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 90)[1]
-        URHC_lat = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 90)[0]
-        
-        LLHC_lon = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 180)[1]
-        LLHC_lat = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 180)[0]
-        
-        LRHC_lon = mapinfo.coord_coord(LLHC_lat, LLHC_lon, map_dim, 90)[1]
-        LRHC_lat = mapinfo.coord_coord(LLHC_lat, LLHC_lon, map_dim, 90)[0]
-        
-        if not image_name in os.listdir(TEXTURES_DIR):
-            with open(TEXTURE_XML_TEMPLATE, 'r') as template:
-                contents = template.read()
+        if not map_name == 'UNKNOWN':
+            map_dim    = self.telem.map_info.grid_info['size_km']
+            image_name = '{}.jpg'.format(map_name)
             
-            new_contents = contents.format(filename=image_name,
-                                           LLHC_lon=LLHC_lon,
-                                           LLHC_lat=LLHC_lat,
-                                           LRHC_lon=LRHC_lon,
-                                           LRHC_lat=LRHC_lat,
-                                           URHC_lon=URHC_lon,
-                                           URHC_lat=URHC_lat,
-                                           ULHC_lon=ULHC_lon,
-                                           ULHC_lat=ULHC_lat)
+            ULHC_lon = self.telem.map_info.grid_info['ULHC_lon']
+            ULHC_lat = self.telem.map_info.grid_info['ULHC_lat']
             
-            if os.path.exists(TEXTURE_XML):
-                with open(TEXTURE_XML, 'r') as text_xml:
-                    current_contents = text_xml.read()
+            URHC_lon = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 90)[1]
+            URHC_lat = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 90)[0]
+            
+            LLHC_lon = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 180)[1]
+            LLHC_lat = mapinfo.coord_coord(ULHC_lat, ULHC_lon, map_dim, 180)[0]
+            
+            LRHC_lon = mapinfo.coord_coord(LLHC_lat, LLHC_lon, map_dim, 90)[1]
+            LRHC_lat = mapinfo.coord_coord(LLHC_lat, LLHC_lon, map_dim, 90)[0]
+            
+            if not image_name in os.listdir(TEXTURES_DIR):
+                with open(TEXTURE_XML_TEMPLATE, 'r') as template:
+                    contents = template.read()
                 
-                if current_contents:
-                    if '\t</CustomTextureList>' in current_contents:
-                        current_contents = current_contents.split('\t</CustomTextureList>')[0] + new_contents.split('<CustomTextureList>')[1]
+                new_contents = contents.format(filename=image_name,
+                                               LLHC_lon=LLHC_lon,
+                                               LLHC_lat=LLHC_lat,
+                                               LRHC_lon=LRHC_lon,
+                                               LRHC_lat=LRHC_lat,
+                                               URHC_lon=URHC_lon,
+                                               URHC_lat=URHC_lat,
+                                               ULHC_lon=ULHC_lon,
+                                               ULHC_lat=ULHC_lat)
+                
+                if os.path.exists(TEXTURE_XML):
+                    with open(TEXTURE_XML, 'r') as text_xml:
+                        current_contents = text_xml.read()
                     
-                        with open(TEXTURE_XML, 'w') as outFile:
-                            outFile.write(current_contents)
-                    
+                    if current_contents:
+                        if '\t</CustomTextureList>' in current_contents:
+                            current_contents = current_contents.split('\t</CustomTextureList>')[0] + new_contents.split('<CustomTextureList>')[1]
+                        
+                            with open(TEXTURE_XML, 'w') as outFile:
+                                outFile.write(current_contents)
+                        
+                        else:
+                            with open(TEXTURE_XML, 'w') as outFile:
+                                outFile.write(new_contents)
+                        
                     else:
                         with open(TEXTURE_XML, 'w') as outFile:
                             outFile.write(new_contents)
-                    
+                
                 else:
                     with open(TEXTURE_XML, 'w') as outFile:
                         outFile.write(new_contents)
-            
-            else:
-                with open(TEXTURE_XML, 'w') as outFile:
-                    outFile.write(new_contents)
-            
-            src = mapinfo.MAP_PATH
-            dst = os.path.join(TEXTURES_DIR, image_name)
-            
-            shutil.copy(src, dst)
+                
+                src = mapinfo.MAP_PATH
+                dst = os.path.join(TEXTURES_DIR, image_name)
+                
+                shutil.copy(src, dst)
     
     def process_player_data(self):
         '''
