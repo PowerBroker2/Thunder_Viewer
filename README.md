@@ -18,7 +18,7 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 
 # How to Install:
 ## .exe:
-1. Download the [latest release EXE](https://github.com/PowerBroker2/Thunder_Viewer/releases)
+1. Download the [latest release EXE](https://github.com/PowerBroker2/Thunder_Viewer/releases) (exe found under "assests" within the release)
 2. Save the exe where you want it to run (FYI: it will automatically create certain folders in the directory it's saved to)
 
 ## Python:
