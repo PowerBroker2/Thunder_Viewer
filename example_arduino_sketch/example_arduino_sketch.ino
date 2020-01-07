@@ -32,34 +32,7 @@ void loop()
 {
   if(feedback.available())
   {
-    byte sendLen = 0;
-    
-    feedback.rxObj(plane.roll, sizeof(plane.roll), sendLen);
-    sendLen += sizeof(plane.roll);
-
-    feedback.rxObj(plane.pitch, sizeof(plane.pitch), sendLen);
-    sendLen += sizeof(plane.pitch);
-
-    feedback.rxObj(plane.hdg, sizeof(plane.hdg), sendLen);
-    sendLen += sizeof(plane.hdg);
-
-    feedback.rxObj(plane.alt, sizeof(plane.alt), sendLen);
-    sendLen += sizeof(plane.alt);
-
-    feedback.rxObj(plane.ias, sizeof(plane.ias), sendLen);
-    sendLen += sizeof(plane.ias);
-
-    feedback.rxObj(plane.lat, sizeof(plane.lat), sendLen);
-    sendLen += sizeof(plane.lat);
-
-    feedback.rxObj(plane.lon, sizeof(plane.lon), sendLen);
-    sendLen += sizeof(plane.lon);
-
-    feedback.rxObj(plane.flaps, sizeof(plane.flaps), sendLen);
-    sendLen += sizeof(plane.flaps);
-
-    feedback.rxObj(plane.gear, sizeof(plane.gear), sendLen);
-    sendLen += sizeof(plane.gear);
+    feedback.rxObj(plane, sizeof(plane));
 
     DEBUG_PORT.print("Roll: ");           DEBUG_PORT.println(plane.roll);
     DEBUG_PORT.print("Pitch: ");          DEBUG_PORT.println(plane.pitch);
