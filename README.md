@@ -37,7 +37,9 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 [Download link](https://www.tacview.net/download/license/en/?file=TacviewSetup.exe&mirror=0)
 
 ## Q: What if I don't want to download Tacview? Can I still use this tool?
-Yes! Streaming and replaying match data to Tacview are only two of the several features of this tool. Thunder Viewer can also be used to save War Thunder data for processing by other programs (other Python scripts, MATLAB scripts, etc) and to stream data to IoT devices like Arduinos!
+Yes!
+Streaming and replaying match data to Tacview are only two of the several features of this tool. Thunder Viewer can also be used to save War Thunder data for processing by other programs (other Python scripts, MATLAB scripts, etc) and to stream data to IoT devices like Arduinos!
 
 ## Q: My plane is not displaying pitch correctly in Tacview, is this a bug?
-Nope, some planes in War Thunder historically do not have an artificial horizon (i.e. early Russian biplanes). If the plane does not have an artificial horizon, War Thunder's localhost does not provide pitch data. When flying such vehicles, Thunder Viewer defaults to pitch angle of 0 degrees at all times for that particular plane.
+Nope!
+Some planes in War Thunder historically do not have an artificial horizon (i.e. early Russian biplanes). If the plane does not have an artificial horizon, War Thunder's localhost does not provide pitch data. When flying such vehicles, Thunder Viewer defaults to pitch angle of 0 degrees at all times for that particular plane.
