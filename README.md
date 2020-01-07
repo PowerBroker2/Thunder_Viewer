@@ -33,6 +33,9 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 ![gui](https://user-images.githubusercontent.com/20977405/71610000-42be2f80-2b5b-11ea-8781-61b8a3f04bfc.PNG)
 
 # FAQ:
+## Q: Is this a hack?
+No! Thunder Viewer uses only data provided by War Thunder itself and provides no advantage above other players.
+
 ## Q: How do I download Tacview?
 [Download link](https://www.tacview.net/download/license/en/?file=TacviewSetup.exe&mirror=0)
 
