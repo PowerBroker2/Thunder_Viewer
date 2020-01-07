@@ -44,4 +44,3 @@ Nope! Some planes in War Thunder historically do not have an artificial horizon 
 
 ## Q: The War Thunder texture map displayed on Tacview's globe is scaled wrong, is this a bug?
 Depends - Sometimes the map served by War Thunder's localhost (which is used by Thunder Viewer and sent to Tacview for display on the globe) is the map used for ground battles instead of the one for air battles. This is a bug with War Thunder. It is possible, however, that the scale of the map is incorrectly set in the Python library [WarThunder](https://github.com/PowerBroker2/WarThunder/blob/master/WarThunder/maps.py). If you think this is the case, please submit an issue ticket either on this repo or the repo for [WarThunder](https://github.com/PowerBroker2/WarThunder).
-.
