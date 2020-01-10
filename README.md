@@ -30,7 +30,7 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 5. Double click "run.bat" or run "Thunder_Viewer.py" via Python
 
 # Graphical User Interface:
-![gui](https://raw.githubusercontent.com/PowerBroker2/Thunder_Viewer/master/GUI_Description.PNG)
+![gui](https://raw.githubusercontent.com/PowerBroker2/Thunder_Viewer/master/docs/GUI_Description.PNG)
 
 # FAQ:
 ## Q: Is this a hack?
