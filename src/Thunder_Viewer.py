@@ -264,9 +264,9 @@ class AppWindow(QMainWindow):
             self.disable_inputs()
             
             if self.ui.live_usb.isChecked():
-                self.usb_port   = self.ui.usb_ports.currentText()
-                self.usb_baud   = int(self.ui.usb_baud.currentText())
-                self.transfer   = transfer.SerialTransfer(self.usb_port, self.usb_baud)
+                self.usb_port = self.ui.usb_ports.currentText()
+                self.usb_baud = int(self.ui.usb_baud.currentText())
+                self.transfer = transfer.SerialTransfer(self.usb_port, self.usb_baud)
             
             if self.ui.mqtt.isChecked():
                 self.mqtt_sub_th = MqttSubThread(self)
@@ -601,7 +601,9 @@ class RecordThread(QThread):
     
     def setup_log(self):
         '''
-        TODO
+        Description:
+        ------------
+        Instantiate a new ACMI log file
         '''
         
         self.loc_time = dt.datetime.now()
