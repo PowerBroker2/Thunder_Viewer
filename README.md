@@ -18,8 +18,8 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 
 # How to Install and Run:
 ## .exe:
-1. Download the [latest release](https://github.com/PowerBroker2/Thunder_Viewer/releases) (exe in zip found under "assests" within the release)
-2. Extract the zip where you want
+1. Download the [latest release](https://github.com/PowerBroker2/Thunder_Viewer/releases) (exe in Thunder_Viewer.zip found under "assests" within the release)
+2. Extract the Thunder_Viewer.zip where you want
 3. Open the extracted file
 4. Double click Thunder_Viewer.exe
 
