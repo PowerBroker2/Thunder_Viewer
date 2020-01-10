@@ -1,5 +1,5 @@
 <p align="center">
-  <img width="325" height="260" src="https://github.com/PowerBroker2/Thunder_Viewer/blob/master/logo.png">
+  <img width="325" height="260" src="https://github.com/PowerBroker2/Thunder_Viewer/blob/master/docs/logo.png">
 </p>
 
 # Description:
@@ -13,7 +13,7 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 
 # Functional Diagram:
 <p align="center">
-  <img width="1981" height="600" src="https://github.com/PowerBroker2/Thunder_Viewer/blob/master/Thunder_Viewer_Functional_Diagram.png">
+  <img width="1981" height="600" src="https://github.com/PowerBroker2/Thunder_Viewer/blob/master/docs/Thunder_Viewer_Functional_Diagram.png">
 </p>
 
 # How to Install and Run:
