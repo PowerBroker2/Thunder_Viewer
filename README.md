@@ -28,7 +28,7 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 2. [Ensure the path to pip.exe is in your PATH system variable](https://www.youtube.com/watch?v=cm6WDGAzDPM)
 3. Download Thunder Viewer from https://github.com/PowerBroker2/Thunder_Viewer (clone or download/extract zip file)
 4. Run "src/setup.bat"
-5. Double click "src/run.bat" or run "src/Thunder_Viewer.py" folder via Python
+5. Double click "src/run.bat" or run "src/Thunder_Viewer.py" via Python
 
 # Graphical User Interface:
 ![gui](https://raw.githubusercontent.com/PowerBroker2/Thunder_Viewer/master/docs/GUI_Description.PNG)
