@@ -599,6 +599,19 @@ class RecordThread(QThread):
                 
                 shutil.copy(src, dst)
     
+    def setup_log(self):
+        '''
+        TODO
+        '''
+        
+        self.loc_time = dt.datetime.now()
+        self.title = TITLE_FORMAT.format(timestamp=self.loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=USERNAME)
+        self.title = os.path.join(self.log_dir, self.title)
+        
+        self.logger.create(self.title)
+        self.header_inserted = False
+        self.meta_inserted   = False
+    
     def process_player_data(self):
         '''
         Description:
@@ -607,11 +620,18 @@ class RecordThread(QThread):
         '''
         
         if self.telem.get_telemetry():
+            # create a new log if player was dead but just now respawned
+            if self.player_dead:
+                self.setup_log()
+                self.player_dead = False
+            
+            # insert header in ACMI file
             if not self.header_inserted and self.telem.map_info.map_valid:
                 header = format_header_dict(self.telem.map_info.grid_info, self.loc_time)
                 self.logger.insert_user_header(header)
                 self.header_inserted = True
             
+            # insert telemetry sample in ACMI file
             if self.header_inserted:
                 if not self.meta_inserted:
                     entry = format_entry_dict(self.telem.full_telemetry,
@@ -625,12 +645,14 @@ class RecordThread(QThread):
             
             log_line = self.logger.format_entry(0, entry)
             
+            # report telemetry to MQTT broker
             if self.mqtt_enable:
                 mqtt_payload = json.dumps({'player':   USERNAME,
                                            'ref_time': self.logger.reference_time.isoformat(),
                                            'entry':    log_line})
                 self.mqttc.publish(self.mqtt_id, mqtt_payload)
             
+            # report telemetry to Tacview
             if self.stream_enable:
                 if not os.path.exists(STREAM_FILE):
                     if not os.path.exists(STREAM_DIR):
@@ -640,6 +662,7 @@ class RecordThread(QThread):
                 with open(STREAM_FILE, 'a') as log:
                     log.write(log_line)
             
+            # report telemetry to USB device
             if self.usb_enable:
                 try:
                     self.send_usb_telem()
@@ -649,8 +672,13 @@ class RecordThread(QThread):
                     print('ERROR: Could not communicate with USB device - Ending USB streaming')
                     self.usb_enable = False
             
+            # save match map as a custom texture in Tacview
             if os.path.exists(TEXTURES_DIR):
                 self.save_texture_files()
+        
+        # identify when the player has died
+        elif not self.telem.map_info.player_found:
+            self.player_dead = True
         
     def run(self):
         '''
@@ -659,16 +687,12 @@ class RecordThread(QThread):
         Main thread to record/stream user data
         '''
         
-        self.loc_time = dt.datetime.now()
-        self.title = TITLE_FORMAT.format(timestamp=self.loc_time.strftime('%Y_%m_%d_%H_%M_%S'), user=USERNAME)
-        self.title = os.path.join(self.log_dir, self.title)
+        self.player_dead = True
         
-        self.logger.create(self.title)
-        self.header_inserted = False
-        self.meta_inserted   = False
-        sample_baseline      = dt.datetime.now()
-        now                  = dt.datetime.now()
+        sample_baseline = dt.datetime.now()
+        now             = dt.datetime.now()
         
+        self.setup_log()
         self.init_mqtt_struct()
         
         while True:
