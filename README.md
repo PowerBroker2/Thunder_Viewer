@@ -13,7 +13,7 @@ This program uses vehicle telemetry data **publicly provided by War Thunder [via
 
 # Functional Diagram:
 <p align="center">
-  <img width="1981" height="600" src="https://github.com/PowerBroker2/Thunder_Viewer/blob/master/docs/Thunder_Viewer_Functional_Diagram.png">
+  <img width="1981" height="600" src="https://github.com/PowerBroker2/Thunder_Viewer/blob/master/docs/Thunder_Viewer_Functional_Diagram.png?raw=true">
 </p>
 
 # How to Install and Run:
