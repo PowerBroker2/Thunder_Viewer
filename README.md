@@ -2,6 +2,8 @@
   <img width="325" height="260" src="https://github.com/PowerBroker2/Thunder_Viewer/blob/master/docs/logo.png">
 </p>
 
+[![GitHub version](https://badge.fury.io/gh/PowerBroker2%2FThunder_Viewer.svg)](https://badge.fury.io/gh/PowerBroker2%2FThunder_Viewer)
+
 # Description:
 Open source Python GUI to stream and log War Thunder match data "real-time"
 
