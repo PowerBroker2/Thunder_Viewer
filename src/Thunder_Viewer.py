@@ -213,6 +213,7 @@ class AppWindow(QMainWindow):
         
         self.ui.acmi_path.setText(LOGS_DIR)
         self.enable_inputs()
+        self.find_tacview_install()
     
     def connect_signals(self):
         '''
@@ -227,6 +228,13 @@ class AppWindow(QMainWindow):
         self.ui.record.clicked.connect(self.record_data)
         self.ui.stop.clicked.connect(self.stop_recording_data)
         self.ui.port_refresh.clicked.connect(self.update_port_list)
+        
+    def find_tacview_install(self):
+        appName = 'Tacview64.exe'
+        
+        for dirName, subdirList, fileList in os.walk(r'C:\Program Files (x86)'):
+            if appName in fileList: 
+                self.ui.tacview_path.setText(os.path.join(dirName, appName))
     
     def get_tacview_install(self):
         path = QFileDialog.getOpenFileName(self, filter='Tacview (Tacview.exe Tacview64.exe)')[0]
