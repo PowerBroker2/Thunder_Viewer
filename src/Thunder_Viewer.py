@@ -15,6 +15,7 @@ from pySerialTransfer import pySerialTransfer as transfer
 from WarThunder import general, telemetry, acmi, mapinfo
 from WarThunder.telemetry import combine_dicts
 from remotePlayGui import Ui_PlayerManager
+from usbFieldsGui import Ui_usbFieldManager
 from gui import Ui_ThunderViewer
 
 
@@ -215,6 +216,10 @@ class AppWindow(QMainWindow):
         self.PlayerManager_ui = Ui_PlayerManager()
         self.PlayerManager_ui.setupUi(self.PlayerManager)
         
+        self.UsbManager = QMainWindow()
+        self.UsbManager_ui = Ui_usbFieldManager()
+        self.UsbManager_ui.setupUi(self.UsbManager)
+        
         self.connect_signals()
         self.init_recording_status()
         self.update_port_list()
@@ -239,6 +244,8 @@ class AppWindow(QMainWindow):
         self.ui.stop.clicked.connect(self.stop_recording_data)
         self.ui.manage_players.clicked.connect(self.launch_remote_player_window)
         self.PlayerManager_ui.apply.clicked.connect(self.block_players)
+        self.ui.manage_usb_fields.clicked.connect(self.launch_usb_fields_window)
+        self.UsbManager_ui.apply.clicked.connect(self.update_usb_fields)
         self.ui.port_refresh.clicked.connect(self.update_port_list)
         
     def find_tacview_install(self):
@@ -389,6 +396,15 @@ class AppWindow(QMainWindow):
         self.PlayerManager_ui.player_list.addItems(self.player_names)
         self.PlayerManager.show()
     
+    def launch_usb_fields_window(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        self.UsbManager.show()
+    
     @pyqtSlot(list)
     def update_player_names(self, names):
         self.player_names = names
@@ -421,6 +437,18 @@ class AppWindow(QMainWindow):
         except AttributeError:
             pass
     
+    def update_usb_fields(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        try:
+            self.rec_th.usb_fields = [item.text() for item in self.UsbManager_ui.usb_fields.selectedItems()]
+        except AttributeError:
+            pass
+    
     def enable_inputs(self):
         self.change_inputs(True)
     
@@ -445,7 +473,7 @@ class AppWindow(QMainWindow):
         self.ui.live_usb.setEnabled(enable)
         self.ui.port_refresh.setEnabled(enable)
         self.ui.usb_baud.setEnabled(enable)
-        self.ui.usb_fields.setEnabled(enable)
+        self.ui.manage_usb_fields.setEnabled(enable)
         self.ui.team.setEnabled(enable)
         self.ui.sample_rate.setEnabled(enable)
         self.ui.record.setEnabled(enable)
@@ -472,6 +500,7 @@ class RecordThread(QThread):
         self.usb_enable    = parent.ui.live_usb.isChecked()
         self.team          = not parent.ui.team.currentIndex()
         self.sample_period = 1.0 / parent.ui.sample_rate.value()
+        self.usb_fields    = []
         
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
@@ -493,7 +522,6 @@ class RecordThread(QThread):
         
         if self.usb_enable:
             self.usb_port   = parent.usb_port
-            self.usb_fields = [item.text() for item in parent.ui.usb_fields.selectedItems()]
             
             if not self.usb_port:
                 self.usb_enable = False

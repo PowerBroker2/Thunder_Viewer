@@ -23,7 +23,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Player Manager</string>
+   <string>Manage Remote Player Data</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <widget class="QPushButton" name="apply">

@@ -40,7 +40,7 @@ class Ui_PlayerManager(object):
 
     def retranslateUi(self, PlayerManager):
         _translate = QtCore.QCoreApplication.translate
-        PlayerManager.setWindowTitle(_translate("PlayerManager", "Player Manager"))
+        PlayerManager.setWindowTitle(_translate("PlayerManager", "Manage Remote Player Data"))
         self.apply.setText(_translate("PlayerManager", "Apply"))
         self.player_list.setSortingEnabled(False)
 
