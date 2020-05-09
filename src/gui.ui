@@ -555,7 +555,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>Enable or disable datalogging/datastreaming for individual players in remote session</string>
+     <string>Enable or disable datastreaming for individual players in remote session</string>
     </property>
     <property name="text">
      <string>Manage Players</string>
@@ -571,7 +571,7 @@
      </rect>
     </property>
     <property name="toolTip">
-     <string>Refresh list of available USB device COM ports</string>
+     <string>Enable or disable datastreaming of individual telemetry fields</string>
     </property>
     <property name="text">
      <string>Manage USB Stream Fields</string>

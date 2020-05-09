@@ -215,9 +215,9 @@ class Ui_ThunderViewer(object):
         self.label_6.setText(_translate("ThunderViewer", "Team"))
         self.sample_rate.setToolTip(_translate("ThunderViewer", "localhost port number to connect to Tacview live stream"))
         self.label_8.setText(_translate("ThunderViewer", "Sample Rate (Hz)"))
-        self.manage_players.setToolTip(_translate("ThunderViewer", "Enable or disable datalogging/datastreaming for individual players in remote session"))
+        self.manage_players.setToolTip(_translate("ThunderViewer", "Enable or disable datastreaming for individual players in remote session"))
         self.manage_players.setText(_translate("ThunderViewer", "Manage Players"))
-        self.manage_usb_fields.setToolTip(_translate("ThunderViewer", "Refresh list of available USB device COM ports"))
+        self.manage_usb_fields.setToolTip(_translate("ThunderViewer", "Enable or disable datastreaming of individual telemetry fields"))
         self.manage_usb_fields.setText(_translate("ThunderViewer", "Manage USB Stream Fields"))
 
 
