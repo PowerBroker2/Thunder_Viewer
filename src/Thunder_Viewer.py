@@ -230,11 +230,26 @@ class AppWindow(QMainWindow):
         self.ui.port_refresh.clicked.connect(self.update_port_list)
         
     def find_tacview_install(self):
+        x86_folder  = r'C:\Program Files (x86)'
+        indep_install_folder = os.path.join(x86_folder, 'Tacview')
+        steam_install_folder = os.path.join(x86_folder, 'Steam', 'steamapps', 'common', 'Tacview')
         appName = 'Tacview64.exe'
+        app_found = False
         
-        for dirName, subdirList, fileList in os.walk(r'C:\Program Files (x86)'):
-            if appName in fileList: 
-                self.ui.tacview_path.setText(os.path.join(dirName, appName))
+        if os.path.exists(indep_install_folder):
+            if appName in os.listdir(indep_install_folder):
+                app_found = True
+                self.ui.tacview_path.setText(os.path.join(indep_install_folder, appName))
+        
+        if os.path.exists(steam_install_folder) and not app_found:
+            if appName in os.listdir(steam_install_folder):
+                app_found = True
+                self.ui.tacview_path.setText(os.path.join(steam_install_folder, appName))
+        
+        if not app_found:
+            for dirName, subdirList, fileList in os.walk(x86_folder):
+                if appName in fileList: 
+                    self.ui.tacview_path.setText(os.path.join(dirName, appName))
     
     def get_tacview_install(self):
         path = QFileDialog.getOpenFileName(self, filter='Tacview (Tacview.exe Tacview64.exe)')[0]
