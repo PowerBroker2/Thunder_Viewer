@@ -9,11 +9,12 @@ import paho.mqtt.client as mqtt
 from random import randint
 from getpass import getuser
 from socketserver import TCPServer, BaseRequestHandler
-from PyQt5.QtCore import QThread, QProcess
+from PyQt5.QtCore import QThread, QProcess, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from pySerialTransfer import pySerialTransfer as transfer
 from WarThunder import general, telemetry, acmi, mapinfo
 from WarThunder.telemetry import combine_dicts
+from remotePlayGui import Ui_PlayerManager
 from gui import Ui_ThunderViewer
 
 
@@ -21,8 +22,6 @@ USERNAME     = getuser()
 BROKER_HOST  = 'broker.hivemq.com'
 TIME_FORMAT  = '%Y-%m-%dT%H:%M:%S.%f'
 APP_DIR      = os.path.dirname(os.path.realpath(__file__))
-STREAM_DIR   = os.path.join(APP_DIR, 'stream_log')
-STREAM_FILE  = os.path.join(STREAM_DIR, 'stream.acmi')
 LOGS_DIR     = os.path.join(APP_DIR, 'logs')
 MQTT_DIR     = os.path.join(APP_DIR, 'mqtt')
 REMOTE_DIR   = os.path.join(MQTT_DIR, 'remote_players')
@@ -194,6 +193,11 @@ def gen_id():
     return str(hex(randint(1, acmi.MAX_NUM_OBJS + 2))[2:]).upper()
 
 
+class PlayerManager(QMainWindow):
+    def __init__(self, parent=None):
+        super(PlayerManager, self).__init__(parent)
+
+
 class AppWindow(QMainWindow):
     '''
     Description:
@@ -207,6 +211,10 @@ class AppWindow(QMainWindow):
         self.ui.setupUi(self)
         self.show()
         
+        self.PlayerManager = QMainWindow()
+        self.PlayerManager_ui = Ui_PlayerManager()
+        self.PlayerManager_ui.setupUi(self.PlayerManager)
+        
         self.connect_signals()
         self.init_recording_status()
         self.update_port_list()
@@ -214,6 +222,8 @@ class AppWindow(QMainWindow):
         self.ui.acmi_path.setText(LOGS_DIR)
         self.enable_inputs()
         self.find_tacview_install()
+        
+        self.player_names = []
     
     def connect_signals(self):
         '''
@@ -227,9 +237,17 @@ class AppWindow(QMainWindow):
         self.ui.launch_tacview_live.clicked.connect(self.launch_live)
         self.ui.record.clicked.connect(self.record_data)
         self.ui.stop.clicked.connect(self.stop_recording_data)
+        self.ui.manage_players.clicked.connect(self.launch_remote_player_window)
+        self.PlayerManager_ui.apply.clicked.connect(self.block_players)
         self.ui.port_refresh.clicked.connect(self.update_port_list)
         
     def find_tacview_install(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
         x86_folder  = r'C:\Program Files (x86)'
         indep_install_folder = os.path.join(x86_folder, 'Tacview')
         steam_install_folder = os.path.join(x86_folder, 'Steam', 'steamapps', 'common', 'Tacview')
@@ -294,6 +312,8 @@ class AppWindow(QMainWindow):
             if self.ui.mqtt.isChecked():
                 self.mqtt_sub_th = MqttSubThread(self)
                 self.mqtt_sub_th.start()
+                self.mqtt_sub_th.update_names.connect(self.update_player_names)
+                self.mqtt_sub_th.send_data.connect(self.send_to_stream)
             
             if self.ui.live_telem.isChecked():
                 self.stream_th = StreamThread(self)
@@ -301,6 +321,8 @@ class AppWindow(QMainWindow):
             
             self.rec_th = RecordThread(self)
             self.rec_th.start()
+            self.rec_th.send_data.connect(self.send_to_stream)
+            
             self.ui.recording.setChecked(True)
     
     def stop_recording_data(self):
@@ -351,13 +373,53 @@ class AppWindow(QMainWindow):
         Description:
         ------------
         Find the names of all currently available serial ports
-        
-        :return: list - names of all available ports
         '''
         
         ports = transfer.open_ports()
         self.ui.usb_ports.clear()
         self.ui.usb_ports.addItems(ports)
+    
+    def launch_remote_player_window(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        self.PlayerManager_ui.player_list.addItems(self.player_names)
+        self.PlayerManager.show()
+    
+    @pyqtSlot(list)
+    def update_player_names(self, names):
+        self.player_names = names
+    
+    @pyqtSlot(str)
+    def send_to_stream(self, line):
+        try:
+            self.stream_th.remote_data_buff.append(line)
+        except AttributeError:
+            pass
+    
+    def block_players(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        blocked = []
+        
+        try:
+            num_players = self.PlayerManager_ui.player_list.count()
+            player_list = self.PlayerManager_ui.player_list
+            
+            for i in range(num_players):
+                if not player_list.item(i).isSelected():
+                    blocked.append(player_list.item(i).text())
+            
+            self.mqtt_sub_th.blocked_players = blocked
+        except AttributeError:
+            pass
     
     def enable_inputs(self):
         self.change_inputs(True)
@@ -378,6 +440,7 @@ class AppWindow(QMainWindow):
         self.ui.live_telem_port.setEnabled(enable)
         self.ui.mqtt.setEnabled(enable)
         self.ui.mqtt_id.setEnabled(enable)
+        self.ui.manage_players.setEnabled(enable)
         self.ui.usb_ports.setEnabled(enable)
         self.ui.live_usb.setEnabled(enable)
         self.ui.port_refresh.setEnabled(enable)
@@ -395,6 +458,8 @@ class RecordThread(QThread):
     ------------
     Thread class used to record and stream personal match data
     '''
+    
+    send_data = pyqtSignal(list)
     
     def __init__(self, parent=None):
         super(RecordThread, self).__init__(parent)
@@ -679,13 +744,7 @@ class RecordThread(QThread):
             
             # report telemetry to Tacview
             if self.stream_enable:
-                if not os.path.exists(STREAM_FILE):
-                    if not os.path.exists(STREAM_DIR):
-                        os.makedirs(STREAM_DIR)
-                    init_stream_log()
-                
-                with open(STREAM_FILE, 'a') as log:
-                    log.write(log_line)
+                self.send_data.emit(log_line)
             
             # report telemetry to USB device
             if self.usb_enable:
@@ -743,6 +802,8 @@ class StreamThread(QThread):
     def __init__(self, parent=None):
         super(StreamThread, self).__init__(parent)
         self.port = parent.ui.live_telem_port.value()
+        self.MAX_BUFF_LEN = 100
+        self.remote_data_buff = []
         
     def run(self):
         try:
@@ -758,6 +819,8 @@ class StreamHandler(BaseRequestHandler):
     ------------
     Stream personal and remote player match data via a localhost TCP connection
     with Tacview
+    
+    TODO
     '''
     
     def handle(self):
@@ -765,32 +828,33 @@ class StreamHandler(BaseRequestHandler):
         self.data = self.request.recv(1024).strip()
         self.read_index = 0
         
-        if not os.path.exists(STREAM_DIR):
-            os.makedirs(STREAM_DIR)
-        init_stream_log()
+        init_str = acmi.header_mandatory.format(filetype='text/acmi/tacview',
+                                                acmiver='2.1',
+                                                reftime=dt.datetime.utcnow().isoformat())
+        
+        try:
+            payload = bytes(init_str, encoding='utf8')
+            self.request.sendall(payload)
+        except ConnectionAbortedError:
+            print('Tacview closed live-telemetry connection')
+            return
         
         while True:
-            if os.path.exists(STREAM_FILE):
-                try:
-                    with open(STREAM_FILE, 'r') as f:
-                        log_line = f.readlines()[self.read_index]
-                except (FileNotFoundError, IndexError):
-                    log_line = ''
-                
-                if log_line:
+            # clear out buffer in case of memory leak
+            if len(self.remote_data_buff) > self.MAX_BUFF_LEN:
+                self.remote_data_buff = []
+            
+            if self.remote_data_buff:
+                # process and clear input buffer
+                for index in range(len(self.remote_data_buff)-1, -1, -1):
                     try:
-                        payload = bytes(log_line, encoding='utf8')
+                        payload = bytes(self.remote_data_buff[index], encoding='utf8')
                         self.request.sendall(payload)
-                        self.read_index += 1
                     except ConnectionAbortedError:
                         print('Tacview closed live-telemetry connection')
-                        init_stream_log()
                         return
-            else:
-                if not os.path.exists(STREAM_DIR):
-                    os.makedirs(STREAM_DIR)
-                self.read_index = 0
-                init_stream_log()
+                    
+                    self.remote_data_buff.pop(index)
 
 
 class MqttSubThread(QThread):
@@ -799,6 +863,9 @@ class MqttSubThread(QThread):
     ------------
     Thread class used to download remote user's data via MQTT
     '''
+    
+    update_names = pyqtSignal(list)
+    send_data = pyqtSignal(str)
     
     def __init__(self, parent=None):
         super(MqttSubThread, self).__init__(parent)
@@ -811,6 +878,7 @@ class MqttSubThread(QThread):
         self.mqttc.on_message = self.on_message
         self.remote_players   = {}
         self.ids_in_use       = []
+        self.blocked_players  = []
         
         if self.mqttc.connect(BROKER_HOST):
             print('ERROR: Could not connect to MQTT broker {}'.format(BROKER_HOST))
@@ -854,16 +922,6 @@ class MqttSubThread(QThread):
                 true_tstamp = '{:0.2f}'.format((sample_dt - user_tref).total_seconds())
                 payload['entry'].replace(remote_tstamp_str, true_tstamp)
                 
-                # stream remote session data to Tacview if enabled
-                if self.stream_enable:
-                    if not os.path.exists(STREAM_FILE):
-                        if not os.path.exists(STREAM_DIR):
-                            os.makedirs(STREAM_DIR)
-                        init_stream_log()
-                    
-                    with open(STREAM_FILE, 'a') as log:
-                        log.write(payload['entry'])
-                
                 # process players new to the remote session
                 if payload['player'] not in self.remote_players.keys():
                     loc_time = dt.datetime.now()
@@ -880,7 +938,13 @@ class MqttSubThread(QThread):
                     while self.remote_players[payload['player']]['obj_id'] in self.ids_in_use:
                         self.remote_players[payload['player']]['obj_id'] = gen_id()
                     
-                    self.ids_in_use.append(self.remote_players[payload['player']]['obj_id'])
+                    self.ids_in_use.append(self.remote_players.keys())
+                    self.update_names.emit(self.remote_players.keys())
+                
+                # stream remote session data to Tacview if enabled and player isn't blocked
+                if self.stream_enable and (payload['player'] not in self.blocked_players):
+                    print("payload['entry'] = {}".format(payload['entry']))
+                    self.send_data.emit(payload['entry'])
 
                 try:
                     # log remote player's data in ACMI file
@@ -916,39 +980,12 @@ def main():
     w.show()
     sys.exit(app.exec_())
 
-def init_stream_log():
-    '''
-    Description:
-    ------------
-    Create an ACMI log file with a generic header. This header will then be
-    populated with telemetry sample entries that will then be streamed to
-    Tacview for live data viewing
-    '''
-    
-    with open(STREAM_FILE, 'w') as log:
-        log.write(acmi.header_mandatory.format(filetype='text/acmi/tacview',
-                                               acmiver='2.1',
-                                               reftime=dt.datetime.utcnow().isoformat()))
-
-def garbage_collection():
-    '''
-    Description:
-    ------------
-    Initialize and clear out stream ACMI file - prevents streaming of old data
-    and prevents log file from balooning in size
-    '''
-    
-    try:
-        init_stream_log()
-    except FileNotFoundError:
-        pass
-
 
 if __name__ == '__main__':
     try:
         main()
     except (SystemExit, KeyboardInterrupt, requests.exceptions.ConnectionError):
-        garbage_collection()
+        pass
 
 
 
