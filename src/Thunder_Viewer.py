@@ -412,7 +412,7 @@ class AppWindow(QMainWindow):
     @pyqtSlot(str)
     def send_to_stream(self, line):
         try:
-            self.stream_th.remote_data_buff.append(line)
+            StreamHandler.remote_data_buff.append(line)
         except AttributeError:
             pass
     
@@ -487,7 +487,7 @@ class RecordThread(QThread):
     Thread class used to record and stream personal match data
     '''
     
-    send_data = pyqtSignal(list)
+    send_data = pyqtSignal(str)
     
     def __init__(self, parent=None):
         super(RecordThread, self).__init__(parent)
@@ -831,7 +831,6 @@ class StreamThread(QThread):
         super(StreamThread, self).__init__(parent)
         self.port = parent.ui.live_telem_port.value()
         self.MAX_BUFF_LEN = 100
-        self.remote_data_buff = []
         
     def run(self):
         try:
@@ -841,15 +840,17 @@ class StreamThread(QThread):
             print('ERROR: TCP port in use - please pick a different port')
 
 
+
 class StreamHandler(BaseRequestHandler):
     '''
     Description:
     ------------
     Stream personal and remote player match data via a localhost TCP connection
     with Tacview
-    
-    TODO
     '''
+    
+    MAX_BUFF_LEN     = 100
+    remote_data_buff = []
     
     def handle(self):
         self.request.sendall(b'XtraLib.Stream.0\nTacview.RealTimeTelemetry.0\nThunder_Viewer\n\x00')
@@ -971,7 +972,6 @@ class MqttSubThread(QThread):
                 
                 # stream remote session data to Tacview if enabled and player isn't blocked
                 if self.stream_enable and (payload['player'] not in self.blocked_players):
-                    print("payload['entry'] = {}".format(payload['entry']))
                     self.send_data.emit(payload['entry'])
 
                 try:
