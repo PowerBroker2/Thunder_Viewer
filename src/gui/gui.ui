@@ -7,19 +7,19 @@
     <x>0</x>
     <y>0</y>
     <width>500</width>
-    <height>842</height>
+    <height>897</height>
    </rect>
   </property>
   <property name="minimumSize">
    <size>
     <width>500</width>
-    <height>842</height>
+    <height>897</height>
    </size>
   </property>
   <property name="maximumSize">
    <size>
     <width>500</width>
-    <height>1015</height>
+    <height>897</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -47,7 +47,7 @@
     <property name="geometry">
      <rect>
       <x>90</x>
-      <y>760</y>
+      <y>820</y>
       <width>82</width>
       <height>17</height>
      </rect>
@@ -60,7 +60,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>740</y>
+      <y>800</y>
       <width>201</width>
       <height>23</height>
      </rect>
@@ -76,7 +76,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>770</y>
+      <y>830</y>
       <width>201</width>
       <height>23</height>
      </rect>
@@ -478,7 +478,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>630</y>
+      <y>690</y>
       <width>201</width>
       <height>22</height>
      </rect>
@@ -501,7 +501,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>610</y>
+      <y>670</y>
       <width>201</width>
       <height>16</height>
      </rect>
@@ -514,7 +514,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>680</y>
+      <y>740</y>
       <width>201</width>
       <height>22</height>
      </rect>
@@ -536,7 +536,7 @@
     <property name="geometry">
      <rect>
       <x>260</x>
-      <y>660</y>
+      <y>720</y>
       <width>201</width>
       <height>20</height>
      </rect>
@@ -575,6 +575,22 @@
     </property>
     <property name="text">
      <string>Manage USB Stream Fields</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="launch_overlay">
+    <property name="geometry">
+     <rect>
+      <x>40</x>
+      <y>620</y>
+      <width>421</width>
+      <height>31</height>
+     </rect>
+    </property>
+    <property name="toolTip">
+     <string>Launches Tacview as specified in &quot;Tacview Install&quot; field at the top of the GUI</string>
+    </property>
+    <property name="text">
+     <string>Launch Game Overlay</string>
     </property>
    </widget>
   </widget>
