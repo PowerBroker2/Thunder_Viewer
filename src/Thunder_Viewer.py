@@ -9,15 +9,14 @@ import paho.mqtt.client as mqtt
 from random import randint
 from getpass import getuser
 from socketserver import TCPServer, BaseRequestHandler
-from PyQt5.QtCore import QThread, QProcess, pyqtSignal, pyqtSlot, Qt
+from PyQt5.QtCore import QThread, QProcess, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from pySerialTransfer import pySerialTransfer as transfer
 from WarThunder import general, telemetry, acmi, mapinfo
 from WarThunder.telemetry import combine_dicts
-from gui.remotePlayGui import Ui_PlayerManager
-from gui.usbFieldsGui import Ui_usbFieldManager
-from gui.gui import Ui_ThunderViewer
-from gui.overlay import Ui_Overlay
+from remotePlayGui import Ui_PlayerManager
+from usbFieldsGui import Ui_usbFieldManager
+from gui import Ui_ThunderViewer
 
 
 USERNAME     = getuser()
@@ -213,9 +212,13 @@ class AppWindow(QMainWindow):
         self.ui.setupUi(self)
         self.show()
         
-        self.setup_overlay()
-        self.setup_player_manager()
-        self.setup_usb_manager()
+        self.PlayerManager = QMainWindow()
+        self.PlayerManager_ui = Ui_PlayerManager()
+        self.PlayerManager_ui.setupUi(self.PlayerManager)
+        
+        self.UsbManager = QMainWindow()
+        self.UsbManager_ui = Ui_usbFieldManager()
+        self.UsbManager_ui.setupUi(self.UsbManager)
         
         self.connect_signals()
         self.init_recording_status()
@@ -226,50 +229,6 @@ class AppWindow(QMainWindow):
         self.find_tacview_install()
         
         self.player_names = []
-    
-    def setup_overlay(self):
-        '''
-        Description:
-        ------------
-        TODO
-        '''
-        
-        self.Overlay = QMainWindow()
-        self.Overlay_ui = Ui_Overlay()
-        self.Overlay_ui.setupUi(self.Overlay)
-        
-        self.Overlay.setWindowFlags(Qt.WindowStaysOnTopHint |
-                                    Qt.FramelessWindowHint  |
-                                    Qt.X11BypassWindowManagerHint)
-        self.Overlay.setAttribute(Qt.WA_TranslucentBackground)
-        
-        self.Overlay_ui.telem_table.setStyleSheet("QTableWidget {background-color: transparent;}"
-                                                  "QHeaderView::section {background-color: transparent;}"
-                                                  "QHeaderView {background-color: transparent;}"
-                                                  "QTableCornerButton::section {background-color: transparent;}")
-        self.Overlay.move(0, 0)
-        
-    def setup_player_manager(self):
-        '''
-        Description:
-        ------------
-        TODO
-        '''
-        
-        self.PlayerManager = QMainWindow()
-        self.PlayerManager_ui = Ui_PlayerManager()
-        self.PlayerManager_ui.setupUi(self.PlayerManager)
-    
-    def setup_usb_manager(self):
-        '''
-        Description:
-        ------------
-        TODO
-        '''
-        
-        self.UsbManager = QMainWindow()
-        self.UsbManager_ui = Ui_usbFieldManager()
-        self.UsbManager_ui.setupUi(self.UsbManager)
     
     def connect_signals(self):
         '''
@@ -285,11 +244,9 @@ class AppWindow(QMainWindow):
         self.ui.stop.clicked.connect(self.stop_recording_data)
         self.ui.manage_players.clicked.connect(self.launch_remote_player_window)
         self.PlayerManager_ui.apply.clicked.connect(self.block_players)
-        self.ui.manage_usb_fields.clicked.connect(self.UsbManager.show)
+        self.ui.manage_usb_fields.clicked.connect(self.launch_usb_fields_window)
         self.UsbManager_ui.apply.clicked.connect(self.update_usb_fields)
         self.ui.port_refresh.clicked.connect(self.update_port_list)
-        self.ui.launch_overlay.clicked.connect(self.Overlay.showFullScreen)
-        self.Overlay_ui.close_button.clicked.connect(self.Overlay.close)
         
     def find_tacview_install(self):
         '''
@@ -438,6 +395,15 @@ class AppWindow(QMainWindow):
         
         self.PlayerManager_ui.player_list.addItems(self.player_names)
         self.PlayerManager.show()
+    
+    def launch_usb_fields_window(self):
+        '''
+        Description:
+        ------------
+        TODO
+        '''
+        
+        self.UsbManager.show()
     
     @pyqtSlot(list)
     def update_player_names(self, names):
@@ -1048,6 +1014,5 @@ if __name__ == '__main__':
         main()
     except (SystemExit, KeyboardInterrupt, requests.exceptions.ConnectionError):
         pass
-
 
 
