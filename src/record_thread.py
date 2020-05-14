@@ -137,7 +137,8 @@ class RecordThread(QThread):
     Thread class used to record and stream personal match data
     '''
     
-    send_data = pyqtSignal(str)
+    send_stream_data = pyqtSignal(str)
+    send_overlay_data = pyqtSignal(dict)
     
     def __init__(self, parent=None):
         super(RecordThread, self).__init__(parent)
@@ -413,6 +414,9 @@ class RecordThread(QThread):
             
             log_line = self.logger.format_entry(0, entry)
             
+            # report telemetry to overlay
+            self.send_overlay_data.emit(self.telem.full_telemetry)
+            
             # report telemetry to MQTT broker
             if self.mqtt_enable:
                 mqtt_payload = json.dumps({'player':   USERNAME,
@@ -422,7 +426,7 @@ class RecordThread(QThread):
             
             # report telemetry to Tacview
             if self.stream_enable:
-                self.send_data.emit(log_line)
+                self.send_stream_data.emit(log_line)
             
             # report telemetry to USB device
             if self.usb_enable:

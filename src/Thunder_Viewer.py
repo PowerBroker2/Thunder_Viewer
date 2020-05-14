@@ -1,8 +1,9 @@
 import os
 import sys
 import requests
+from PyQt5.QtGui import QColor
 from PyQt5.QtCore import QProcess, pyqtSlot, Qt
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QTableWidgetItem
 from pySerialTransfer import pySerialTransfer as transfer
 from gui.remotePlayGui import Ui_PlayerManager
 from gui.usbFieldsGui import Ui_usbFieldManager
@@ -61,6 +62,8 @@ class AppWindow(QMainWindow):
                                                   "QHeaderView::section {background-color: transparent;}"
                                                   "QHeaderView {background-color: transparent;}"
                                                   "QTableCornerButton::section {background-color: transparent;}")
+        self.Overlay_ui.telem_table.setColumnCount(3)
+        self.Overlay_ui.telem_table.setRowCount(1)
         self.Overlay.move(0, 0)
         
     def setup_player_manager(self):
@@ -177,7 +180,7 @@ class AppWindow(QMainWindow):
                 self.mqtt_sub_th = MqttSubThread(self)
                 self.mqtt_sub_th.start()
                 self.mqtt_sub_th.update_names.connect(self.update_player_names)
-                self.mqtt_sub_th.send_data.connect(self.send_to_stream)
+                self.mqtt_sub_th.send_stream_data.connect(self.send_to_stream)
             
             if self.ui.live_telem.isChecked():
                 self.stream_th = StreamThread(self)
@@ -185,7 +188,8 @@ class AppWindow(QMainWindow):
             
             self.rec_th = RecordThread(self)
             self.rec_th.start()
-            self.rec_th.send_data.connect(self.send_to_stream)
+            self.rec_th.send_stream_data.connect(self.send_to_stream)
+            self.rec_th.send_overlay_data.connect(self.send_to_overlay)
             
             self.ui.recording.setChecked(True)
     
@@ -263,6 +267,32 @@ class AppWindow(QMainWindow):
             StreamHandler.remote_data_buff.append(line)
         except AttributeError:
             pass
+    
+    @pyqtSlot(dict)
+    def send_to_overlay(self, telem_dict):
+        # reset table
+        self.Overlay_ui.telem_table.setRowCount(1)
+        
+        # fill the table with new telemetry data
+        index = 0
+        for datum in telem_dict.keys():
+            self.Overlay_ui.telem_table.insertRow(index)
+            self.Overlay_ui.telem_table.setItem(index, 0, QTableWidgetItem(datum.replace('_', ' ').upper().split(',')[0]))
+            self.Overlay_ui.telem_table.setItem(index, 1, QTableWidgetItem(str(telem_dict[datum])))
+            index += 1
+        
+        # apply font color to each cell
+        for row in range(self.Overlay_ui.telem_table.rowCount()):
+            for col in range(self.Overlay_ui.telem_table.columnCount()):
+                try:
+                    self.Overlay_ui.telem_table.item(row, col).setForeground(QColor(255, 255, 255))
+                except AttributeError:
+                    pass
+        
+        # resize table to contents
+        self.Overlay_ui.telem_table.resizeColumnsToContents()
+        self.Overlay_ui.telem_table.resizeRowsToContents()
+        self.Overlay_ui.telem_table.resize(10000, 10000)
     
     def block_players(self):
         '''

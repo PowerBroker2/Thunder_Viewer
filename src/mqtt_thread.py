@@ -29,7 +29,7 @@ class MqttSubThread(QThread):
     '''
     
     update_names = pyqtSignal(list)
-    send_data = pyqtSignal(str)
+    send_stream_data = pyqtSignal(str)
     
     def __init__(self, parent=None):
         super(MqttSubThread, self).__init__(parent)
@@ -107,7 +107,7 @@ class MqttSubThread(QThread):
                 
                 # stream remote session data to Tacview if enabled and player isn't blocked
                 if self.stream_enable and (payload['player'] not in self.blocked_players):
-                    self.send_data.emit(payload['entry'])
+                    self.send_stream_data.emit(payload['entry'])
 
                 try:
                     # log remote player's data in ACMI file
