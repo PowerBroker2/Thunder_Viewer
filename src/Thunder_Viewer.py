@@ -64,7 +64,11 @@ class AppWindow(QMainWindow):
                                                   "QTableCornerButton::section {background-color: transparent;}")
         self.Overlay_ui.telem_table.setColumnCount(3)
         self.Overlay_ui.telem_table.setRowCount(1)
+        self.Overlay_ui.field_select_table.setColumnCount(2)
+        self.Overlay_ui.field_select_table.setRowCount(0)
         self.Overlay.move(0, 0)
+        
+        self.overlay_fields = []
         
     def setup_player_manager(self):
         '''
@@ -270,16 +274,59 @@ class AppWindow(QMainWindow):
     
     @pyqtSlot(dict)
     def send_to_overlay(self, telem_dict):
+        # find all valid fields
+        found_fields = telem_dict.keys()
+        
+        # remove any fields that are no longer valid
+        for i in range(len(self.overlay_fields)-1, -1, -1):
+            if self.overlay_fields[i] not in found_fields:
+                for row in self.Overlay_ui.field_select_table.rowCount():
+                    field = self.Overlay_ui.field_select_table.item(row, 1).text()
+                    
+                    scrubbed_field = self.overlay_fields[i].replace('_', ' ').upper().split(',')[0]
+                    if field == scrubbed_field:
+                        self.Overlay_ui.field_select_table.removeRow(row)
+                        break
+                
+                self.overlay_fields.pop(i)
+        
+        # add new fields
+        for field in found_fields:
+            if field not in self.overlay_fields:
+                self.overlay_fields.append(field)
+                
+                #add row
+                new_row_num = self.Overlay_ui.field_select_table.rowCount()
+                self.Overlay_ui.field_select_table.insertRow(new_row_num)
+                
+                chkBoxItem = QTableWidgetItem()
+                chkBoxItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
+                chkBoxItem.setCheckState(Qt.Unchecked)
+                
+                self.Overlay_ui.field_select_table.setItem(new_row_num, 0, chkBoxItem)
+                self.Overlay_ui.field_select_table.setItem(new_row_num, 1, QTableWidgetItem(field.replace('_', ' ').upper().split(',')[0]))
+                
+        selected_fields_list = []
+        for row in range(self.Overlay_ui.field_select_table.rowCount()):
+            try:
+                if self.Overlay_ui.field_select_table.item(row, 0).checkState():
+                    selected_fields_list.append(self.Overlay_ui.field_select_table.item(row, 1).text())
+            except AttributeError:
+                pass
+        
         # reset table
-        self.Overlay_ui.telem_table.setRowCount(1)
+        self.Overlay_ui.telem_table.setRowCount(0)
         
         # fill the table with new telemetry data
         index = 0
         for datum in telem_dict.keys():
-            self.Overlay_ui.telem_table.insertRow(index)
-            self.Overlay_ui.telem_table.setItem(index, 0, QTableWidgetItem(datum.replace('_', ' ').upper().split(',')[0]))
-            self.Overlay_ui.telem_table.setItem(index, 1, QTableWidgetItem(str(telem_dict[datum])))
-            index += 1
+            datum_str = datum.replace('_', ' ').upper().split(',')[0]
+            
+            if datum_str in selected_fields_list:
+                self.Overlay_ui.telem_table.insertRow(index)
+                self.Overlay_ui.telem_table.setItem(index, 0, QTableWidgetItem(datum_str))
+                self.Overlay_ui.telem_table.setItem(index, 1, QTableWidgetItem(str(telem_dict[datum]).upper()))
+                index += 1
         
         # apply font color to each cell
         for row in range(self.Overlay_ui.telem_table.rowCount()):
