@@ -64,7 +64,7 @@ class AppWindow(QMainWindow):
                                                   "QTableCornerButton::section {background-color: transparent;}")
         self.Overlay_ui.telem_table.setColumnCount(3)
         self.Overlay_ui.telem_table.setRowCount(1)
-        self.Overlay_ui.field_select_table.setColumnCount(2)
+        self.Overlay_ui.field_select_table.setColumnCount(1)
         self.Overlay_ui.field_select_table.setRowCount(0)
         self.Overlay.move(0, 0)
         
@@ -281,7 +281,7 @@ class AppWindow(QMainWindow):
         for i in range(len(self.overlay_fields)-1, -1, -1):
             if self.overlay_fields[i] not in found_fields:
                 for row in self.Overlay_ui.field_select_table.rowCount():
-                    field = self.Overlay_ui.field_select_table.item(row, 1).text()
+                    field = self.Overlay_ui.field_select_table.item(row, 0).text()
                     
                     scrubbed_field = self.overlay_fields[i].replace('_', ' ').upper().split(',')[0]
                     if field == scrubbed_field:
@@ -302,15 +302,16 @@ class AppWindow(QMainWindow):
                 chkBoxItem = QTableWidgetItem()
                 chkBoxItem.setFlags(Qt.ItemIsUserCheckable | Qt.ItemIsEnabled)
                 chkBoxItem.setCheckState(Qt.Unchecked)
+                chkBoxItem.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                chkBoxItem.setText(field.replace('_', ' ').upper().split(',')[0])
                 
                 self.Overlay_ui.field_select_table.setItem(new_row_num, 0, chkBoxItem)
-                self.Overlay_ui.field_select_table.setItem(new_row_num, 1, QTableWidgetItem(field.replace('_', ' ').upper().split(',')[0]))
                 
         selected_fields_list = []
         for row in range(self.Overlay_ui.field_select_table.rowCount()):
             try:
                 if self.Overlay_ui.field_select_table.item(row, 0).checkState():
-                    selected_fields_list.append(self.Overlay_ui.field_select_table.item(row, 1).text())
+                    selected_fields_list.append(self.Overlay_ui.field_select_table.item(row, 0).text())
             except AttributeError:
                 pass
         
