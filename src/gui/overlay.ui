@@ -25,6 +25,9 @@
   <property name="windowTitle">
    <string>Thunder Viewer Overlay</string>
   </property>
+  <property name="windowOpacity">
+   <double>0.500000000000000</double>
+  </property>
   <property name="autoFillBackground">
    <bool>false</bool>
   </property>

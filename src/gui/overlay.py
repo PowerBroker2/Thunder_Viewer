@@ -94,6 +94,7 @@ class Ui_Overlay(object):
         sizePolicy.setHeightForWidth(Overlay.sizePolicy().hasHeightForWidth())
         Overlay.setSizePolicy(sizePolicy)
         Overlay.setMinimumSize(QtCore.QSize(5000, 5000))
+        Overlay.setWindowOpacity(0.5)
         Overlay.setAutoFillBackground(False)
         self.centralwidget = QtWidgets.QWidget(Overlay)
         self.centralwidget.setObjectName("centralwidget")
