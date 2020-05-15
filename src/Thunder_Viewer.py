@@ -134,11 +134,6 @@ class AppWindow(QMainWindow):
             if appName in os.listdir(steam_install_folder):
                 app_found = True
                 self.ui.tacview_path.setText(os.path.join(steam_install_folder, appName))
-        
-        if not app_found:
-            for dirName, subdirList, fileList in os.walk(x86_folder):
-                if appName in fileList: 
-                    self.ui.tacview_path.setText(os.path.join(dirName, appName))
     
     def get_tacview_install(self):
         path = QFileDialog.getOpenFileName(self, filter='Tacview (Tacview.exe Tacview64.exe)')[0]
