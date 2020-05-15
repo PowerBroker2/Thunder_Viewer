@@ -193,7 +193,7 @@ class AppWindow(QMainWindow):
             self.rec_th = RecordThread(self)
             self.rec_th.start()
             self.rec_th.send_stream_data.connect(self.send_to_stream)
-            self.rec_th.send_overlay_data.connect(self.send_to_overlay)
+            self.rec_th.send_overlay_data.connect(self.update_overlay)
             
             self.ui.recording.setChecked(True)
     
@@ -273,14 +273,14 @@ class AppWindow(QMainWindow):
             pass
     
     @pyqtSlot(dict)
-    def send_to_overlay(self, telem_dict):
+    def update_overlay(self, telem_dict):
         # find all valid fields
         found_fields = telem_dict.keys()
         
         # remove any fields that are no longer valid
         for i in range(len(self.overlay_fields)-1, -1, -1):
             if self.overlay_fields[i] not in found_fields:
-                for row in self.Overlay_ui.field_select_table.rowCount():
+                for row in range(self.Overlay_ui.field_select_table.rowCount()):
                     field = self.Overlay_ui.field_select_table.item(row, 0).text()
                     
                     scrubbed_field = self.overlay_fields[i].replace('_', ' ').upper().split(',')[0]
@@ -325,7 +325,7 @@ class AppWindow(QMainWindow):
             
             if datum_str in selected_fields_list:
                 self.Overlay_ui.telem_table.insertRow(index)
-                self.Overlay_ui.telem_table.setItem(index, 0, QTableWidgetItem(datum_str))
+                self.Overlay_ui.telem_table.setItem(index, 0, QTableWidgetItem(datum_str + '   '))
                 self.Overlay_ui.telem_table.setItem(index, 1, QTableWidgetItem(str(telem_dict[datum]).upper()))
                 index += 1
         

@@ -67,8 +67,16 @@ def format_entry_dict(telem, team_flag=True, initial_entry=False):
                                                  hdg=telem['compass'])
                               
     formatted_entry['Throttle']          = telem['throttle 1, %'] / 100
-    formatted_entry['RollControlInput']  = '{0:.6f}'.format(telem['stick_ailerons'])
-    formatted_entry['PitchControlInput'] = '{0:.6f}'.format(telem['stick_elevator'])
+    
+    try:
+        formatted_entry['RollControlInput']  = '{0:.6f}'.format(telem['stick_ailerons'])
+    except KeyError:
+        formatted_entry['RollControlInput']  = 0
+        
+    try:
+        formatted_entry['PitchControlInput'] = '{0:.6f}'.format(telem['stick_elevator'])
+    except KeyError:
+        formatted_entry['PitchControlInput'] = 0
     
     try:
         formatted_entry['YawControlInput'] = '{0:.6f}'.format(telem['pedals1'])
