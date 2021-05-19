@@ -7,7 +7,7 @@
 SerialTransfer feedback;
 
 
-struct state{
+struct __attribute__((__packed__)) state{
   float roll   = 0;
   float pitch  = 0;
   uint16_t hdg = 0;
@@ -32,7 +32,7 @@ void loop()
 {
   if(feedback.available())
   {
-    feedback.rxObj(plane, sizeof(plane));
+    feedback.rxObj(plane);
 
     DEBUG_PORT.print("Roll: ");           DEBUG_PORT.println(plane.roll);
     DEBUG_PORT.print("Pitch: ");          DEBUG_PORT.println(plane.pitch);
@@ -44,10 +44,5 @@ void loop()
     DEBUG_PORT.print("Flap State: ");     DEBUG_PORT.println(plane.flaps);
     DEBUG_PORT.print("Gear State: ");     DEBUG_PORT.println(plane.gear);
     DEBUG_PORT.println();
-  }
-  else if(feedback.status < 0)
-  {
-    DEBUG_PORT.print("ERROR: ");
-    DEBUG_PORT.println(feedback.status);
   }
 }
